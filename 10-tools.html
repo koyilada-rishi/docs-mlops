@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Tools Deep Dive — MLOps Architecture</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>:root{--accent-color:#E24B4A}.hero-accent{color:#E24B4A}
+.tool-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.tool-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+.tool-title{font-size:18px;font-weight:500}
+.tool-sub{font-size:12px;color:var(--t3);margin-top:2px}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo"><div class="nav-dot"></div>MLOps Architecture</a>
+  <div class="nav-links">
+    <a href="01-data.html">Data</a><a href="02-features.html">Features</a>
+    <a href="03-training.html">Training</a><a href="04-serving.html">Serving</a>
+    <a href="05-observability.html">Observability</a><a href="06-cicd.html">CI/CD</a>
+    <a href="07-glossary.html">Glossary</a>
+    <a href="08-airflow.html">Airflow</a>
+    <a href="09-kubeflow.html">Kubeflow</a>
+    <a href="10-tools.html" class="active">Tools</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-badge"><div class="page-hero-badge-dot" style="background:#E24B4A"></div>Tools Deep Dive</div>
+  <h1>MLOps Tooling — <span class="hero-accent">GE, Feast, dbt, BentoML, Seldon</span></h1>
+  <p>Five tools that complete the production MLOps stack. Great Expectations for data quality, Feast for feature stores, dbt for SQL-based feature engineering, BentoML and Seldon as alternative serving frameworks. Each explained with architecture, code, and when to use it vs alternatives.</p>
+</div>
+
+<div class="content">
+
+<!-- ─────────────────────────────────────────────
+  GREAT EXPECTATIONS
+───────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Great Expectations — data quality framework</div>
+
+  <div class="row2">
+    <div class="card full">
+      <div class="tool-header">
+        <div class="tool-icon" style="background:rgba(29,158,117,0.15);color:#1D9E75">GE</div>
+        <div><div class="tool-title">Great Expectations</div><div class="tool-sub">Define, test, and document data quality expectations as code</div></div>
+      </div>
+      <table class="mini-t">
+        <tr><td>Core idea</td><td>Write assertions about your data — "price must be &gt; 0", "null rate must be &lt; 5%", "values must be in this set" — and run them at every ingestion.</td></tr>
+        <tr><td>Expectation Suite</td><td>A collection of expectations for a dataset. Version-controlled JSON file. Run it against any batch of data.</td></tr>
+        <tr><td>Checkpoint</td><td>A configured run of a Suite against a Data Source. Triggered by Airflow, GitHub Actions, or on any data write.</td></tr>
+        <tr><td>Data Docs</td><td>Auto-generated HTML report showing which expectations passed/failed with statistics. Hosted on MinIO S3 or locally.</td></tr>
+        <tr><td>Data Source</td><td>Connects GE to your data — Pandas DataFrame, Parquet on MinIO, SQL table. Abstracts the data access layer.</td></tr>
+      </table>
+    </div>
+    <div class="card full">
+      <div class="lbl">GE with MinIO — expectation suite code</div>
+      <div class="code"><span class="kw">import</span> great_expectations <span class="kw">as</span> gx
+<span class="kw">import</span> pandas <span class="kw">as</span> pd, boto3, io
+
+<span class="cm"># Load data from MinIO</span>
+s3  = boto3.client(<span class="str">"s3"</span>, endpoint_url=<span class="str">"http://192.168.1.15:30900"</span>,
+    aws_access_key_id=<span class="str">"minioadmin"</span>, aws_secret_access_key=<span class="str">"minioadmin"</span>)
+obj = s3.get_object(Bucket=<span class="str">"mlops-raw"</span>, Key=<span class="str">"source=db/date=2025-08-01/train.parquet"</span>)
+df  = pd.read_parquet(io.BytesIO(obj[<span class="str">"Body"</span>].read()))
+
+<span class="cm"># Create GE context and validator</span>
+context   = gx.get_context()
+validator = context.sources.pandas_default.read_dataframe(df)
+
+<span class="cm"># ── Define expectations ─────────────────────────────────</span>
+validator.expect_table_row_count_to_be_between(min_value=1000)
+validator.expect_column_to_exist(<span class="str">"MedInc"</span>)
+validator.expect_column_values_to_not_be_null(<span class="str">"MedInc"</span>, mostly=0.95)
+validator.expect_column_values_to_be_between(
+    <span class="str">"MedInc"</span>, min_value=0, max_value=100)
+validator.expect_column_values_to_be_between(
+    <span class="str">"HouseAge"</span>, min_value=0, max_value=100)
+validator.expect_column_mean_to_be_between(
+    <span class="str">"MedInc"</span>, min_value=2.0, max_value=8.0)  <span class="cm"># distribution check</span>
+validator.expect_column_values_to_be_in_set(
+    <span class="str">"OceanProximity"</span>,
+    [<span class="str">"NEAR BAY"</span>,<span class="str">"&lt;1H OCEAN"</span>,<span class="str">"INLAND"</span>,<span class="str">"NEAR OCEAN"</span>,<span class="str">"ISLAND"</span>])
+
+<span class="cm"># ── Save suite ──────────────────────────────────────────</span>
+validator.save_expectation_suite(<span class="str">"train_suite"</span>)
+
+<span class="cm"># ── Run checkpoint ──────────────────────────────────────</span>
+results = validator.validate()
+<span class="kw">if</span> <span class="kw">not</span> results[<span class="str">"success"</span>]:
+    print(<span class="str">"DATA VALIDATION FAILED"</span>)
+    print(results.to_json_dict())
+    exit(1)   <span class="cm"># halt pipeline — do NOT train on bad data</span>
+
+<span class="cm"># ── Build and upload Data Docs to MinIO ─────────────────</span>
+context.build_data_docs()
+<span class="cm"># Serve from: http://192.168.1.15:30900/mlops-artifacts/data_docs/</span></div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <div class="lbl">GE in the MLOps pipeline — where it sits</div>
+    <div class="flow-row">
+      <div class="flow-node">Ingest → MinIO raw/</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(29,158,117,0.5);color:#9FE1CB">GE Checkpoint (fail = halt)</div><div class="flow-arr">→</div>
+      <div class="flow-node">DVC add + push</div><div class="flow-arr">→</div>
+      <div class="flow-node">Feature engineering</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(29,158,117,0.5);color:#9FE1CB">GE Checkpoint (model contract)</div><div class="flow-arr">→</div>
+      <div class="flow-node">Train</div>
+    </div>
+    <div class="callout amber" style="margin-top:12px"><strong>GE vs Pandera:</strong> Pandera is simpler, schema-first, great for quick column-type checks in Python. GE is heavier but has Data Docs, checkpoints, profiling, and a versioned expectation store. Use Pandera for fast in-code validation, GE for a full data quality platform with audit reports.</div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────
+  FEAST — FEATURE STORE
+───────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Feast — feature store</div>
+
+  <div class="row2">
+    <div class="card full">
+      <div class="tool-header">
+        <div class="tool-icon" style="background:rgba(239,159,39,0.15);color:#EF9F27">FS</div>
+        <div><div class="tool-title">Feast (Feature Store)</div><div class="tool-sub">Centralised feature management — offline for training, online for serving</div></div>
+      </div>
+      <table class="mini-t">
+        <tr><td>The problem it solves</td><td>Without a feature store, every team computes the same features differently. Training pipeline uses one formula for "user average order value in last 7 days". Serving code uses a different formula. Skew guaranteed.</td></tr>
+        <tr><td>Offline store</td><td>Historical features for training — MinIO/S3 as Parquet files. Supports point-in-time joins so training features are generated as they would have been at the time of each event.</td></tr>
+        <tr><td>Online store</td><td>Low-latency feature serving for real-time inference — Redis, DynamoDB, SQLite. Features are pre-materialized for sub-millisecond lookup at serving time.</td></tr>
+        <tr><td>Feature view</td><td>A definition of features computed from a Data Source. Versioned, registered in Feast's registry. All consumers use the same definition.</td></tr>
+        <tr><td>Entity</td><td>The thing features are computed about — user_id, product_id, house_id. Used as the join key for point-in-time correct feature retrieval.</td></tr>
+        <tr><td>Materialisation</td><td>Copying computed features from the offline store (S3) to the online store (Redis). Run on a schedule to keep online features fresh.</td></tr>
+      </table>
+    </div>
+    <div class="card full">
+      <div class="lbl">Feast feature definition + retrieval</div>
+      <div class="code"><span class="kw">from</span> feast <span class="kw">import</span> (FeatureStore, Entity, FeatureView,
+    Field, FileSource)
+<span class="kw">from</span> feast.types <span class="kw">import</span> Float32, Int64
+<span class="kw">from</span> datetime <span class="kw">import</span> timedelta
+
+<span class="cm"># ── Define data source (MinIO Parquet) ──────────────────</span>
+house_source = FileSource(
+    path=<span class="str">"s3://mlops-processed/features/house_stats.parquet"</span>,
+    timestamp_field=<span class="str">"event_timestamp"</span>,
+    s3_endpoint_override=<span class="str">"http://192.168.1.15:30900"</span>,
+)
+
+<span class="cm"># ── Define entity (what features are about) ─────────────</span>
+house = Entity(name=<span class="str">"house_id"</span>, join_keys=[<span class="str">"house_id"</span>])
+
+<span class="cm"># ── Define feature view (the computed features) ─────────</span>
+house_fv = FeatureView(
+    name=<span class="str">"house_features"</span>,
+    entities=[house],
+    ttl=timedelta(days=7),   <span class="cm"># online store TTL</span>
+    schema=[
+        Field(name=<span class="str">"med_inc"</span>,   dtype=Float32),
+        Field(name=<span class="str">"house_age"</span>, dtype=Float32),
+        Field(name=<span class="str">"ave_rooms"</span>, dtype=Float32),
+        Field(name=<span class="str">"latitude"</span>,  dtype=Float32),
+        Field(name=<span class="str">"longitude"</span>, dtype=Float32),
+    ],
+    source=house_source,
+)
+
+<span class="cm"># ── Training: point-in-time correct retrieval ───────────</span>
+store = FeatureStore(repo_path=<span class="str">"feature_repo/"</span>)
+training_df = store.get_historical_features(
+    entity_df=entity_df,   <span class="cm"># has house_id + event_timestamp</span>
+    features=[
+        <span class="str">"house_features:med_inc"</span>,
+        <span class="str">"house_features:ave_rooms"</span>,
+    ],
+).to_df()
+
+<span class="cm"># ── Serving: online low-latency lookup ──────────────────</span>
+features = store.get_online_features(
+    features=[<span class="str">"house_features:med_inc"</span>],
+    entity_rows=[{<span class="str">"house_id"</span>: <span class="str">"h001"</span>}],
+).to_dict()  <span class="cm"># Redis lookup — sub-millisecond</span></div>
+    </div>
+  </div>
+  <div class="callout green"><strong>When you need Feast:</strong> Multiple models reusing the same features. Multiple teams computing the same feature differently. Low-latency serving requirements needing pre-materialised features in Redis. Not needed for a single-model proof of concept — feature engineering in sklearn Pipeline is enough for that.</div>
+</div>
+
+<!-- ─────────────────────────────────────────────
+  DBT
+───────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">dbt — SQL-based feature engineering</div>
+
+  <div class="row2">
+    <div class="card full">
+      <div class="tool-header">
+        <div class="tool-icon" style="background:rgba(255,111,69,0.15);color:#FF6F45">dbt</div>
+        <div><div class="tool-title">dbt (data build tool)</div><div class="tool-sub">Transform raw data into features using SQL — with tests, docs, lineage</div></div>
+      </div>
+      <table class="mini-t">
+        <tr><td>What it does</td><td>Runs SQL transformations in your data warehouse (BigQuery, Redshift, Snowflake, DuckDB). Each transformation is a .sql model file. dbt figures out the dependency order and runs them.</td></tr>
+        <tr><td>Model</td><td>A single SQL SELECT that transforms source data. Saved as a .sql file. dbt wraps it in CREATE TABLE AS SELECT or CTAS. You just write the SELECT.</td></tr>
+        <tr><td>Ref()</td><td>{{ ref('other_model') }} — how you reference another model. dbt builds the DAG from these references. Never write raw table names — always ref().</td></tr>
+        <tr><td>Tests</td><td>Built-in: not_null, unique, accepted_values, relationships. Custom: any SQL assertion. Run after each model build. Equivalent of GE for SQL data.</td></tr>
+        <tr><td>Lineage graph</td><td>Auto-generated DAG showing data flow from sources through all transformation models to final tables. Visual documentation.</td></tr>
+        <tr><td>Incremental models</td><td>Only process new rows since the last run. Efficient for daily feature computation on large tables.</td></tr>
+      </table>
+    </div>
+    <div class="card full">
+      <div class="lbl">dbt model — feature computation in SQL</div>
+      <div class="code"><span class="cm">-- models/features/user_order_features.sql</span>
+<span class="cm">-- Computes rolling 7-day order features per user</span>
+
+{{
+  config(
+    materialized = <span class="str">'incremental'</span>,   <span class="cm">-- only new rows each run</span>
+    unique_key   = <span class="str">'user_id'</span>,
+    partition_by = {<span class="str">'field'</span>: <span class="str">'order_date'</span>, <span class="str">'data_type'</span>: <span class="str">'date'</span>}
+  )
+}}
+
+<span class="kw">WITH</span> orders <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> * <span class="kw">FROM</span> {{ ref(<span class="str">'stg_orders'</span>) }}  <span class="cm">-- ref() not raw table</span>
+    {% <span class="kw">if</span> is_incremental() %}
+    <span class="kw">WHERE</span> order_date > (<span class="kw">SELECT</span> <span class="kw">MAX</span>(order_date) <span class="kw">FROM</span> {{ this }})
+    {% endif %}
+),
+rolling_features <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        user_id,
+        order_date,
+        <span class="kw">COUNT</span>(*) <span class="kw">OVER</span>(
+            <span class="kw">PARTITION BY</span> user_id
+            <span class="kw">ORDER BY</span> order_date
+            <span class="kw">ROWS BETWEEN</span> 6 <span class="kw">PRECEDING AND CURRENT ROW</span>
+        ) <span class="kw">AS</span> orders_7d,
+        <span class="kw">AVG</span>(order_value) <span class="kw">OVER</span>(
+            <span class="kw">PARTITION BY</span> user_id
+            <span class="kw">ORDER BY</span> order_date
+            <span class="kw">ROWS BETWEEN</span> 6 <span class="kw">PRECEDING AND CURRENT ROW</span>
+        ) <span class="kw">AS</span> avg_order_value_7d,
+        <span class="kw">DAYS_SINCE</span>(order_date, <span class="kw">LAG</span>(order_date) <span class="kw">OVER</span>(
+            <span class="kw">PARTITION BY</span> user_id <span class="kw">ORDER BY</span> order_date)) <span class="kw">AS</span> days_since_prev_order
+    <span class="kw">FROM</span> orders
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> rolling_features</div>
+      <div class="code" style="margin-top:8px"><span class="cm"># Run dbt</span>
+dbt run --select user_order_features      <span class="cm"># one model</span>
+dbt test --select user_order_features     <span class="cm"># run tests</span>
+dbt run --select +user_order_features+    <span class="cm"># full upstream DAG</span>
+dbt docs generate && dbt docs serve       <span class="cm"># lineage docs</span></div>
+    </div>
+  </div>
+  <div class="callout blue"><strong>dbt vs Python features:</strong> dbt wins for features that are naturally expressed as SQL aggregations over existing warehouse tables — rolling windows, joins, group-bys. Python wins for features requiring ML logic (embeddings, model predictions as features) or when data isn't in a SQL warehouse. Use both: dbt generates the base feature tables, Python pipeline reads them and adds ML-specific transforms.</div>
+</div>
+
+<!-- ─────────────────────────────────────────────
+  BENTOML
+───────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">BentoML — alternative model serving</div>
+
+  <div class="row2">
+    <div class="card full">
+      <div class="tool-header">
+        <div class="tool-icon" style="background:rgba(127,119,221,0.15);color:#7F77DD">BML</div>
+        <div><div class="tool-title">BentoML</div><div class="tool-sub">Framework for packaging and serving ML models as containerised services</div></div>
+      </div>
+      <table class="mini-t">
+        <tr><td>Core concept</td><td>A "Bento" is a packaged unit containing your model + dependencies + serving code. One command builds a Docker image. Deployed anywhere — K8s, AWS Lambda, GCP, local.</td></tr>
+        <tr><td>Runner</td><td>BentoML's abstraction for model inference. Can be local or distributed. Handles batching, concurrency, and GPU sharing automatically.</td></tr>
+        <tr><td>Service</td><td>A FastAPI-like HTTP service wrapping one or more Runners. Defines endpoints, input/output schemas, middleware.</td></tr>
+        <tr><td>vs KServe</td><td>BentoML is more Python-native and easier to start with. KServe is Kubernetes-native with better auto-scaling, canary, and protocol standardisation. BentoML for fast iteration, KServe for production scale.</td></tr>
+      </table>
+    </div>
+    <div class="card full">
+      <div class="lbl">BentoML service definition</div>
+      <div class="code"><span class="kw">import</span> bentoml
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+
+<span class="cm"># ── Save model to BentoML store ─────────────────────────</span>
+<span class="cm"># (after training, instead of / alongside MLflow)</span>
+bentoml.sklearn.save_model(<span class="str">"california_housing"</span>, pipe,
+    signatures={<span class="str">"predict"</span>: {<span class="str">"batchable"</span>: True}})
+
+<span class="cm"># ── Define the service (service.py) ─────────────────────</span>
+runner = bentoml.sklearn.get(<span class="str">"california_housing:latest"</span>).to_runner()
+
+svc = bentoml.Service(<span class="str">"housing_service"</span>, runners=[runner])
+
+<span class="kw">class</span> HouseFeatures(BaseModel):
+    MedInc: float
+    HouseAge: float
+    AveRooms: float
+    AveBedrms: float
+    Population: float
+    AveOccup: float
+    Latitude: float
+    Longitude: float
+
+@svc.api(input=bentoml.io.JSON(pydantic_model=HouseFeatures),
+         output=bentoml.io.JSON())
+<span class="kw">async def</span> predict(house: HouseFeatures) -> dict:
+    arr = np.array([[
+        house.MedInc, house.HouseAge, house.AveRooms,
+        house.AveBedrms, house.Population, house.AveOccup,
+        house.Latitude, house.Longitude
+    ]])
+    price = <span class="kw">await</span> runner.predict.async_run(arr)
+    <span class="kw">return</span> {<span class="str">"price_usd"</span>: float(price[0]) * 100_000}
+
+<span class="cm"># ── Build and serve ─────────────────────────────────────</span>
+<span class="cm">$ bentoml serve service:svc --reload         # local dev</span>
+<span class="cm">$ bentoml build                              # build Bento</span>
+<span class="cm">$ bentoml containerize housing_service:latest  # Docker image</span>
+<span class="cm">$ docker run -p 3000:3000 housing_service:latest</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────
+  SELDON
+───────────────────────────────────────────── -->
+<div class="section">
+  <div class="section-title">Seldon Core — enterprise model serving on K8s</div>
+
+  <div class="row2">
+    <div class="card full">
+      <div class="tool-header">
+        <div class="tool-icon" style="background:rgba(216,90,48,0.15);color:#D85A30">SC</div>
+        <div><div class="tool-title">Seldon Core</div><div class="tool-sub">Production model serving with explainability and outlier detection built in</div></div>
+      </div>
+      <table class="mini-t">
+        <tr><td>SeldonDeployment</td><td>K8s CRD for deploying models. Similar to KServe InferenceService but with a graph concept — models, routers, combiners, and transformers in one manifest.</td></tr>
+        <tr><td>Inference graph</td><td>A pipeline of components: router (A/B test) → model → outlier detector → explainer → logger. All defined in one YAML, all running in the same pod group.</td></tr>
+        <tr><td>Explainer</td><td>Built-in SHAP/LIME explainability endpoint. GET /v1/models/x:explain returns per-feature attribution. KServe requires separate setup. Seldon has it by default.</td></tr>
+        <tr><td>Alibi Detect</td><td>Seldon's companion library for outlier detection, concept drift detection, and adversarial example detection. Runs inline in the inference graph.</td></tr>
+        <tr><td>vs KServe</td><td>Seldon has richer inference graphs and built-in explainability. KServe has better auto-scaling and is the CNCF standard. Both run on K8s. Seldon is favoured in regulated industries (finance, healthcare).</td></tr>
+      </table>
+    </div>
+    <div class="card full">
+      <div class="lbl">Seldon SeldonDeployment with outlier detection</div>
+      <div class="code">apiVersion: machinelearning.seldon.io/v1
+kind: SeldonDeployment
+metadata:
+  name: housing-model
+  namespace: mlops
+spec:
+  predictors:
+    - name: default
+      replicas: 2
+      traffic: 90              <span class="cm"># 90% traffic</span>
+      graph:
+        name: outlier-detector
+        type: TRANSFORMER       <span class="cm"># runs before prediction</span>
+        implementation: TRITON_SERVER
+        modelUri: s3://mlops-models/outlier-detector/v1/
+        children:
+          - name: housing-predictor
+            type: MODEL
+            implementation: SKLEARN_SERVER
+            modelUri: s3://mlops-models/sklearn/rfr/v1/
+            parameters:
+              - name: method
+                type: STRING
+                value: predict
+            children:
+              - name: explainer
+                type: EXPLAINER     <span class="cm"># SHAP at /explain endpoint</span>
+                implementation: AnchorImages
+                modelUri: s3://mlops-models/explainer/v1/
+
+    - name: canary
+      replicas: 1
+      traffic: 10              <span class="cm"># 10% canary</span>
+      graph:
+        name: housing-predictor-v2
+        type: MODEL
+        implementation: SKLEARN_SERVER
+        modelUri: s3://mlops-models/sklearn/rfr/v2/</div>
+    </div>
+  </div>
+</div>
+
+<!-- TOOL DECISION MATRIX -->
+<div class="section">
+  <div class="section-title">Tool decision matrix — which to use when</div>
+  <div class="card full">
+    <table class="mini-t">
+      <tr><td><strong>Data validation</strong></td><td>Quick schema checks in Python → <strong>Pandera</strong>. Full audit reports + checkpoint history → <strong>Great Expectations</strong>. SQL table tests → <strong>dbt tests</strong>.</td></tr>
+      <tr><td><strong>Feature engineering</strong></td><td>Python ML features (scaling, OHE, embeddings) → <strong>sklearn Pipeline</strong>. SQL aggregations on warehouse data → <strong>dbt</strong>. Reuse across many models + teams → <strong>Feast</strong>.</td></tr>
+      <tr><td><strong>Experiment tracking</strong></td><td>Simple, self-hosted → <strong>MLflow</strong>. Managed, collaboration, reports → <strong>Weights &amp; Biases</strong>. In Kubeflow ecosystem → <strong>KFP + MLMD</strong>.</td></tr>
+      <tr><td><strong>Orchestration</strong></td><td>Complex ETL + ML + cross-system → <strong>Airflow</strong>. Pure ML, K8s-native → <strong>Kubeflow Pipelines</strong>. Simple code pipelines → <strong>GitHub Actions</strong>.</td></tr>
+      <tr><td><strong>Model serving</strong></td><td>K8s, production, auto-scale, canary → <strong>KServe</strong>. Fast dev, any platform → <strong>BentoML</strong>. Explainability + inference graph → <strong>Seldon Core</strong>. Simple FastAPI → <strong>FastAPI + uvicorn</strong>.</td></tr>
+      <tr><td><strong>Drift monitoring</strong></td><td>Open-source, self-hosted → <strong>Evidently</strong>. Streaming, real-time → <strong>Alibi Detect (Seldon)</strong>. Enterprise managed → <strong>Arize AI, Fiddler</strong>.</td></tr>
+      <tr><td><strong>Feature store</strong></td><td>Open-source → <strong>Feast</strong>. Managed → <strong>Tecton, Hopsworks</strong>. In-house → <strong>Redis + DVC offline</strong>.</td></tr>
+      <tr><td><strong>Home lab (your stack)</strong></td><td><strong>DVC + MLflow + MinIO + sklearn Pipeline + KServe + Evidently + GitHub Actions</strong>. This covers 80% of what Flipkart/Swiggy interviewers want to hear. Airflow and KFP are bonus points.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- HOW ALL TOOLS FIT TOGETHER -->
+<div class="section">
+  <div class="section-title">How all tools fit in the complete architecture</div>
+  <div class="card full">
+    <div class="flow-row">
+      <div class="flow-node">DB / Kafka</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(29,158,117,0.4);color:#9FE1CB">Airflow ingest DAG</div><div class="flow-arr">→</div>
+      <div class="flow-node">MinIO raw/</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(29,158,117,0.4);color:#9FE1CB">Great Expectations</div><div class="flow-arr">→</div>
+      <div class="flow-node">DVC push</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-node">DVC pull</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(255,111,69,0.4);color:#FF8C69">dbt models</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(55,138,221,0.4);color:#B5D4F4">sklearn Pipeline</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(239,159,39,0.4);color:#FAC775">Feast offline store</div><div class="flow-arr">→</div>
+      <div class="flow-node">MLflow train</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-node">MLflow registry</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(127,119,221,0.4);color:#CECBF6">KServe / BentoML / Seldon</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(239,159,39,0.4);color:#FAC775">Feast online store (Redis)</div><div class="flow-arr">→</div>
+      <div class="flow-node">Prediction response</div>
+    </div>
+    <div class="flow-row">
+      <div class="flow-node">Inference logs → MinIO</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(216,90,48,0.4);color:#F0997B">Evidently / Alibi Detect</div><div class="flow-arr">→</div>
+      <div class="flow-node">PSI &gt; 0.2</div><div class="flow-arr">→</div>
+      <div class="flow-node" style="border-color:rgba(29,158,117,0.4);color:#9FE1CB">Airflow retrain DAG</div><div class="flow-arr">→</div>
+      <div class="flow-node">↺ loop</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="page-nav">
+  <a href="09-kubeflow.html" class="page-nav-btn">← Kubeflow</a>
+  <span style="font-size:12px;color:var(--t3)">10 — Tools Deep Dive</span>
+  <a href="index.html" class="page-nav-btn">Back to overview →</a>
+</div>
+</body>
+</html>

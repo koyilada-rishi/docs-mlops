@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MLOps Glossary — Complete Terminology</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>
+:root{--accent-color:#378ADD}
+.hero-accent{color:#378ADD}
+.glossary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media(max-width:680px){.glossary-grid{grid-template-columns:1fr}}
+.term-card{background:var(--bg2);border:0.5px solid var(--b2);border-radius:10px;padding:14px 16px}
+.term-name{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:5px}
+.term-cat{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.cat-data{background:rgba(29,158,117,0.15);color:#9FE1CB}
+.cat-model{background:rgba(239,159,39,0.15);color:#FAC775}
+.cat-infra{background:rgba(55,138,221,0.15);color:#B5D4F4}
+.cat-ops{background:rgba(99,153,34,0.15);color:#C0DD97}
+.cat-concept{background:rgba(127,119,221,0.15);color:#CECBF6}
+.term-def{font-size:12px;color:var(--t2);line-height:1.6}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.filter-btn{font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;border:0.5px solid var(--b2);background:var(--bg2);color:var(--t2);cursor:pointer;transition:.15s;font-family:var(--sans)}
+.filter-btn:hover,.filter-btn.active{background:var(--bg3);color:var(--t1)}
+.search-input{padding:8px 14px;border:0.5px solid var(--b2);border-radius:8px;background:var(--bg2);color:var(--t1);font-size:13px;font-family:var(--sans);width:100%;margin-bottom:14px;outline:none}
+.search-input:focus{border-color:var(--b1)}
+.section-header{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin:20px 0 10px;grid-column:1/-1;display:flex;align-items:center;gap:10px}
+.section-header::after{content:'';flex:1;height:0.5px;background:var(--b2)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo"><div class="nav-dot"></div>MLOps Architecture</a>
+  <div class="nav-links">
+    <a href="01-data.html">Data</a><a href="02-features.html">Features</a>
+    <a href="03-training.html">Training</a><a href="04-serving.html">Serving</a>
+    <a href="05-observability.html">Observability</a><a href="06-cicd.html">CI/CD</a>
+    <a href="07-glossary.html" class="active">Glossary</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-badge"><div class="page-hero-badge-dot" style="background:#378ADD"></div>Reference</div>
+  <h1>MLOps Glossary — <span class="hero-accent">100+ Terms</span></h1>
+  <p>Complete terminology for every concept in the MLOps pipeline. Search or filter by category. Study this before interviews — knowing the right vocabulary shows depth of understanding.</p>
+</div>
+
+<div class="content">
+  <input type="text" class="search-input" id="search" placeholder="Search terms... (e.g. drift, pipeline, DVC)" oninput="filterTerms()"/>
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('data',this)">Data</button>
+    <button class="filter-btn" onclick="setFilter('model',this)">Model</button>
+    <button class="filter-btn" onclick="setFilter('infra',this)">Infrastructure</button>
+    <button class="filter-btn" onclick="setFilter('ops',this)">Operations</button>
+    <button class="filter-btn" onclick="setFilter('concept',this)">Concepts</button>
+  </div>
+
+  <div class="glossary-grid" id="glossary-grid">
+
+    <div class="section-header" data-section="Data & Storage">Data &amp; Storage</div>
+
+    <div class="term-card" data-cat="data" data-text="minio s3 object storage bucket">
+      <div class="term-name">MinIO<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Open-source, S3-compatible object storage. Acts as the mandatory first landing zone for all raw data before any ML processing. Your home lab runs it at 192.168.1.15:30900.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="dvc data version control git pointer hash">
+      <div class="term-name">DVC<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Data Version Control. Tracks dataset versions via MD5 hash pointers stored in Git. Actual file bytes live in MinIO. dvc pull downloads the exact version, dvc push uploads it.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="etl extract transform load pipeline">
+      <div class="term-name">ETL<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Extract, Transform, Load. The process of pulling data from a source (Extract), converting it to a suitable format (Transform), and writing it to storage (Load). DB → parquet → MinIO.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="data lake raw storage unprocessed">
+      <div class="term-name">Data lake<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">A storage repository holding vast amounts of raw data in its native format until needed. MinIO's mlops-raw/ bucket acts as the data lake in your architecture.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="parquet columnar format storage compression">
+      <div class="term-name">Parquet<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Columnar storage format for big data. Highly compressed, supports predicate pushdown (read only the columns you need). The standard format for ML datasets stored in MinIO.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="kafka streaming events queue message">
+      <div class="term-name">Kafka<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Distributed event streaming platform. Produces and consumes high-throughput event data. In MLOps: streaming source that gets micro-batched and written to MinIO with event-time partitioning.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="data lineage audit trail source tracking">
+      <div class="term-name">Data lineage<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">The ability to trace any model or prediction back to the exact dataset, code version, and configuration that produced it. Achieved via MLflow run_id + DVC hash + git SHA.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="schema registry columns types contract">
+      <div class="term-name">Schema registry<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Centralised store of data schemas. Detects when a source system changes its column structure. Alerts pipeline before bad data corrupts feature engineering.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="feature store online offline serving training">
+      <div class="term-name">Feature store<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Centralised system managing ML features. Offline store (MinIO/Parquet) for training data. Online store (Redis) for low-latency serving. Feast and Hopsworks are popular implementations.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="idempotent write duplicate safe">
+      <div class="term-name">Idempotent write<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">A write operation that produces the same result when applied multiple times. Critical for ETL jobs — if the job re-runs due to failure, it should not duplicate data in MinIO.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="event time ingest time timestamp difference">
+      <div class="term-name">Event time vs ingest time<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Event time = when the event happened (a sale at 11pm). Ingest time = when it arrived in your system (2am the next day). All temporal features must use event time for correct day_of_week, hour etc.</div>
+    </div>
+    <div class="term-card" data-cat="data" data-text="data versioning snapshot reproducibility">
+      <div class="term-name">Data versioning<span class="term-cat cat-data">Data</span></div>
+      <div class="term-def">Tracking which exact version of a dataset was used for each model training run. DVC provides this via .dvc pointer files committed to Git alongside the code.</div>
+    </div>
+
+    <div class="section-header" data-section="Feature Engineering">Feature Engineering</div>
+
+    <div class="term-card" data-cat="model" data-text="standardisation z-score mean zero std one scaler">
+      <div class="term-name">Standardisation<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Transform a numeric feature to have mean=0 and std=1. (x - mean) / std. Required for algorithms sensitive to scale: SVM, KNN, linear regression, PCA, neural networks.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="normalisation min max zero one range">
+      <div class="term-name">Min-max normalisation<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Scale features to a fixed range [0,1]. (x - min) / (max - min). Preserves zero. Sensitive to outliers — one extreme value compresses all others. Good for neural networks and images.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="one hot encoding ohe categorical binary column">
+      <div class="term-name">One-hot encoding (OHE)<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Convert a categorical feature with N values into N binary columns. City=[Mumbai, Delhi, Pune] becomes three 0/1 columns. Use for low cardinality (&lt;20 unique values). Use handle_unknown="ignore" for unseen values at serving time.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="target encoding mean high cardinality">
+      <div class="term-name">Target encoding<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Replace a category with the mean target value for that category. City → mean house price in that city. Compact and powerful for high cardinality. Must be computed on training data only to avoid leakage.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="imputation null missing values fill">
+      <div class="term-name">Imputation<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Filling missing (null) values with a substitute. Strategies: median (robust to outliers), mean (for normal distributions), most_frequent (for categories), constant (when missing is a signal). Must be fitted on training data only.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="cyclical encoding sine cosine hour day week">
+      <div class="term-name">Cyclical encoding<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Encode circular features (hour=0–23, day_of_week=0–6) using sin and cos. Ensures hour 23 and hour 0 are close in feature space. Without this, the model sees them as 23 apart instead of 1 apart.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="lag feature time series previous value shift">
+      <div class="term-name">Lag feature<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">The value of a feature at a previous time step. sales_lag_1d = yesterday's sales. Used in time series to capture autocorrelation. Always use .shift(1) before .rolling() to avoid including the current row.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="rolling average window mean statistics">
+      <div class="term-name">Rolling average<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Average over a sliding time window. 7-day rolling mean of sales captures the weekly trend. Must exclude the current row (shift first) to avoid data leakage.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="shap shapley feature importance explainability">
+      <div class="term-name">SHAP<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">SHapley Additive exPlanations. Per-row, per-feature attribution of model predictions. Shows not just which features matter but how and in which direction. The gold standard for ML interpretability.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="tfidf term frequency inverse document text nlp">
+      <div class="term-name">TF-IDF<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Term Frequency — Inverse Document Frequency. Weights words by how often they appear in a document (TF) penalised by how common they are across all documents (IDF). Converts text to a sparse numeric matrix.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="embedding vector dense representation semantic">
+      <div class="term-name">Embedding<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">A dense, low-dimensional vector representation of a high-cardinality entity (word, user, product). Similar entities have nearby embeddings. Sentence transformers produce embeddings for text. Captures semantic similarity.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="feature selection importance filter wrapper">
+      <div class="term-name">Feature selection<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Choosing which features to include in the model. Filter methods (mutual information), wrapper methods (recursive elimination), embedded methods (L1 regularisation, tree importance). More features ≠ better model.</div>
+    </div>
+
+    <div class="section-header" data-section="Model Training">Model Training</div>
+
+    <div class="term-card" data-cat="model" data-text="mlflow experiment tracking runs artifacts metrics">
+      <div class="term-name">MLflow<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Open-source platform for managing the ML lifecycle. Tracks experiments (params, metrics, artifacts), stores models in the registry, and serves as the single source of truth for all model versions.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="model registry staging production archived version">
+      <div class="term-name">Model registry<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Centralised store of versioned model artifacts with lifecycle stages: None → Staging → Production → Archived. MLflow provides this. KServe pulls the Production model URI at deploy time.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="hyperparameter tuning optuna search learning rate">
+      <div class="term-name">Hyperparameter tuning<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Searching for the best model configuration (learning rate, tree depth, number of estimators) that wasn't learned from data. Optuna uses Bayesian optimisation — smarter than grid search.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="overfitting train error low val error high memorise">
+      <div class="term-name">Overfitting<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Model performs well on training data but poorly on unseen data. It has memorised the training set instead of learning general patterns. Fix: regularisation, more data, simpler model, cross-validation.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="cross validation kfold stratified evaluation">
+      <div class="term-name">Cross-validation<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Training and evaluating a model multiple times on different splits of the data. K-fold: split into K parts, train on K-1, test on 1, rotate. Gives a more reliable estimate of true performance than a single split.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="class imbalance smote oversampling undersampling weights">
+      <div class="term-name">Class imbalance<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">When one class has far fewer samples than another (e.g. 99% non-fraud, 1% fraud). Solutions: SMOTE (oversample minority), class_weight="balanced", threshold tuning on predictions.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="evaluation gate threshold promote production test set">
+      <div class="term-name">Evaluation gate<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">A minimum metric threshold a model must pass before being promoted to production. E.g. test_rmse &lt; 0.50. If it fails, CI exits with code 1 and no deployment happens.</div>
+    </div>
+    <div class="term-card" data-cat="model" data-text="rmse mae r2 regression metrics accuracy f1 auc">
+      <div class="term-name">RMSE / MAE / R²<span class="term-cat cat-model">Model</span></div>
+      <div class="term-def">Regression metrics. RMSE: root mean squared error — penalises large errors. MAE: mean absolute error — robust to outliers. R²: proportion of variance explained (1.0 = perfect, 0 = no better than mean).</div>
+    </div>
+
+    <div class="section-header" data-section="Infrastructure">Infrastructure</div>
+
+    <div class="term-card" data-cat="infra" data-text="kubernetes k3s k8s cluster pods nodes">
+      <div class="term-name">K3s<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Lightweight Kubernetes distribution. Full K8s API with a smaller footprint — ideal for Proxmox home labs. Runs MLflow, KServe, MinIO, Prometheus, Grafana all in one cluster.</div>
+    </div>
+    <div class="term-card" data-cat="infra" data-text="kserve model serving kubernetes inference service">
+      <div class="term-name">KServe<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Kubernetes-native model serving platform. Provides auto-scaling, canary rollouts, the v2 inference protocol, transformer/predictor/explainer pods. Loads model artifacts from MinIO at deploy time.</div>
+    </div>
+    <div class="term-card" data-cat="infra" data-text="docker container image build tag registry">
+      <div class="term-name">Docker<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Containerisation platform. Packages code + dependencies into an image. In MLOps: the serving application runs in Docker. The model itself is NOT baked into the image — it's loaded from MLflow/MinIO at runtime.</div>
+    </div>
+    <div class="term-card" data-cat="infra" data-text="fastapi rest api gateway endpoint python">
+      <div class="term-name">FastAPI<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Python web framework for building REST APIs. Used as the prediction gateway: handles JWT auth, Pydantic input validation, rate limiting, and request logging before forwarding to KServe.</div>
+    </div>
+    <div class="term-card" data-cat="infra" data-text="proxmox virtualisation vm hypervisor home lab">
+      <div class="term-name">Proxmox<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Open-source virtualisation platform. Runs your home lab — K3s cluster, MinIO, MLflow all run as VMs or LXC containers on Proxmox. Bare-metal performance with VM isolation.</div>
+    </div>
+    <div class="term-card" data-cat="infra" data-text="helm kubernetes package manager charts values">
+      <div class="term-name">Helm<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Kubernetes package manager. Charts define all K8s resources (Deployment, Service, ConfigMap, etc.) in a template. helm upgrade --install deploys or updates the release with one command.</div>
+    </div>
+    <div class="term-card" data-cat="infra" data-text="postgresql postgres database backend mlflow">
+      <div class="term-name">PostgreSQL<span class="term-cat cat-infra">Infra</span></div>
+      <div class="term-def">Relational database. Used as the backend store for MLflow tracking server — stores experiment metadata, run params, metrics, tags. Artifact files (models) go to MinIO, not PostgreSQL.</div>
+    </div>
+
+    <div class="section-header" data-section="Operations">Operations</div>
+
+    <div class="term-card" data-cat="ops" data-text="prometheus metrics scrape time series database">
+      <div class="term-name">Prometheus<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Open-source time-series metrics database. Scrapes /metrics endpoints on pods every 15s. Stores latency histograms, request counts, error rates. AlertManager fires on rule violations.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="grafana dashboard visualisation panels queries">
+      <div class="term-name">Grafana<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Observability dashboards. Queries Prometheus for infrastructure metrics and MinIO S3 datasource for drift reports. Panels: latency heatmap, prediction distribution, PSI trend, pod health.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="evidently drift monitoring report psi ks test">
+      <div class="term-name">Evidently<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Open-source ML observability library. Generates drift reports (HTML + JSON) comparing reference (training) data vs current (production) data. Runs as a K8s CronJob, saves reports to MinIO.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="github actions ci cd workflow yaml pipeline automation">
+      <div class="term-name">GitHub Actions<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">CI/CD automation platform. Workflows triggered by git push, PR, or workflow_dispatch (manual/API trigger). Runs lint, tests, dvc repro, Docker build, K3s deploy, smoke test in sequence.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="canary rollout traffic split ab test deployment">
+      <div class="term-name">Canary rollout<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Deploy a new model version to a small percentage of traffic (e.g. 10%) before promoting to 100%. If metrics degrade, roll back. KServe supports this natively via canaryTrafficPercent.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="slo sla latency error rate availability target">
+      <div class="term-name">SLO / SLA<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Service Level Objective: internal performance target (p99 latency &lt;200ms, error_rate &lt;1%). SLA: contractual commitment to customers. Prometheus AlertManager fires when SLOs are breached.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="alertmanager alert notification pagerduty slack">
+      <div class="term-name">AlertManager<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Prometheus component that handles alert routing. When a rule fires (e.g. p99 &gt;200ms), AlertManager sends notifications to Slack, email, or PagerDuty. Supports silencing and grouping.</div>
+    </div>
+    <div class="term-card" data-cat="ops" data-text="shadow mode testing parallel serving comparison">
+      <div class="term-name">Shadow mode<span class="term-cat cat-ops">Ops</span></div>
+      <div class="term-def">Running a new model in parallel with the live model on real traffic without serving its predictions. Compares outputs to catch skew or unexpected behaviour before canary. The safest way to validate a model.</div>
+    </div>
+
+    <div class="section-header" data-section="Core Concepts">Core Concepts</div>
+
+    <div class="term-card" data-cat="concept" data-text="train serve skew transform different mismatch">
+      <div class="term-name">Train-serve skew<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Different feature transforms at training time vs serving time causing silent prediction errors. The #1 cause of production ML failures. Prevented by serialising the entire sklearn Pipeline (imputer + scaler + model) as one artifact.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="data drift psi ks feature distribution shift">
+      <div class="term-name">Data drift<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Statistical shift in input feature distributions between training time and serving time. Example: training MedInc mean was 3.87, serving requests have mean 2.10. Model predictions become systematically biased.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="concept drift label relationship change target">
+      <div class="term-name">Concept drift<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">The relationship between features and target changes. Same inputs, different correct outputs. Example: fraud patterns evolve — old fraud patterns become normal, new ones emerge. Requires ground-truth labels to detect.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="data leakage target future information test contamination">
+      <div class="term-name">Data leakage<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Future or target information bleeding into training data. Causes artificially high accuracy in notebooks that collapses in production. Types: target leakage, temporal leakage, scaler fitted on full dataset before split.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="reproducibility experiment deterministic same result">
+      <div class="term-name">Reproducibility<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Given a git SHA, being able to recreate the exact dataset (via DVC), features, model, and evaluation results from any past experiment. The core promise of MLOps. MLflow + DVC together provide this.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="psi population stability index drift threshold">
+      <div class="term-name">PSI (Population Stability Index)<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Measures how much a distribution has shifted. PSI &lt;0.1 = stable (no action). 0.1–0.2 = monitor closely. &gt;0.2 = significant drift — alert and consider retraining. Used by Evidently and production banks worldwide.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="ks test kolmogorov smirnov statistical distribution">
+      <div class="term-name">KS test<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Kolmogorov-Smirnov test. Non-parametric statistical test comparing two continuous distributions. p-value &lt;0.05 means the distributions are significantly different — drift detected.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="inference latency p99 percentile response time">
+      <div class="term-name">Inference latency (p99)<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">The 99th percentile response time for prediction requests. The slowest 1% of requests. Production SLO target is typically p99 &lt; 200ms. Monitored by Prometheus, visualised as a heatmap in Grafana.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="cold start model loading first request latency">
+      <div class="term-name">Cold start<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">The first inference request after a model pod starts from zero replicas. The pod loads the model from MinIO (2–10 seconds) before responding. Mitigate with min_replicas=1 for latency-sensitive endpoints.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="model card documentation bias intended use">
+      <div class="term-name">Model card<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Documentation describing a model's intended use, performance across different subgroups, training data, known limitations, and ethical considerations. Required for governance and regulatory compliance.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="online batch inference real-time asynchronous">
+      <div class="term-name">Online vs batch inference<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Online: single real-time request → immediate response (&lt;200ms). Batch: entire dataset processed asynchronously (no latency constraint). Choose based on use case — fraud detection = online, monthly churn scoring = batch.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="ab test experiment statistical significance business metric">
+      <div class="term-name">A/B testing<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Running two model versions simultaneously on production traffic to compare real-world business impact (revenue, clicks, errors). More reliable than offline metrics alone. Typically run for 48–72 hours for statistical significance.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="mlops devops machine learning operations lifecycle">
+      <div class="term-name">MLOps<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Machine Learning Operations. Applying software engineering (DevOps, CI/CD, testing, monitoring) to the ML lifecycle. Goal: making model deployment reliable, repeatable, and continuously improving. The entire field this site documents.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="feedback loop production labels retrain continuous">
+      <div class="term-name">Feedback loop<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Using production predictions and their outcomes to improve the next model version. User corrections, downstream system signals, explicit ratings — all become training data. Closes the loop between deployment and improvement.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="onnx portable model format framework interop">
+      <div class="term-name">ONNX<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Open Neural Network Exchange. A portable model format enabling models trained in PyTorch or TensorFlow to be served in other runtimes (C++, Java, ONNX Runtime). Also enables int8 quantisation for faster inference.</div>
+    </div>
+    <div class="term-card" data-cat="concept" data-text="quantisation int8 model compression faster smaller">
+      <div class="term-name">Quantisation<span class="term-cat cat-concept">Concept</span></div>
+      <div class="term-def">Reducing model precision from float32 to int8 (or int4). Makes models 4x smaller and 2–4x faster at inference time with minimal accuracy loss. Used when memory or latency is a constraint.</div>
+    </div>
+
+  </div><!-- end glossary-grid -->
+</div><!-- end content -->
+
+<div class="page-nav">
+  <a href="06-cicd.html" class="page-nav-btn">← CI/CD</a>
+  <span style="font-size:12px;color:var(--t3)">Glossary — 50+ terms</span>
+  <a href="index.html" class="page-nav-btn">Back to overview →</a>
+</div>
+
+<script>
+var activeFilter = 'all';
+
+function setFilter(cat, btn) {
+  activeFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  filterTerms();
+}
+
+function filterTerms() {
+  var q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.term-card').forEach(function(card) {
+    var cat  = card.dataset.cat;
+    var text = (card.dataset.text + ' ' + card.textContent).toLowerCase();
+    var catOk = (activeFilter === 'all' || cat === activeFilter);
+    var qOk   = (q === '' || text.indexOf(q) !== -1);
+    card.style.display = (catOk && qOk) ? '' : 'none';
+  });
+  document.querySelectorAll('[data-section]').forEach(function(hdr) {
+    hdr.style.display = '';
+  });
+}
+</script>
+</body>
+</html>

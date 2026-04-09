@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MLOps Architecture — Complete Guide</title>
+<style>
+:root{--bg:#0f0f0e;--bg2:#1a1a18;--bg3:#242422;--t1:#e8e6de;--t2:#a8a6a0;--t3:#6a6a64;--b1:rgba(255,255,255,0.25);--b2:rgba(255,255,255,0.12);--b3:rgba(255,255,255,0.06);--accent:#1D9E75;--accent2:#378ADD;--mono:ui-monospace,"Fira Code",monospace;--sans:system-ui,-apple-system,sans-serif;--r:10px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);min-height:100vh;line-height:1.6}
+a{color:inherit;text-decoration:none}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:0.5px solid var(--b2);position:sticky;top:0;background:var(--bg);z-index:100}
+.nav-logo{font-size:14px;font-weight:500;color:var(--t1);display:flex;align-items:center;gap:8px}
+.nav-dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.nav-links{display:flex;gap:4px;flex-wrap:wrap}
+.nav-links a{font-size:12px;color:var(--t2);padding:5px 10px;border-radius:6px;transition:.15s}
+.nav-links a:hover{background:var(--bg3);color:var(--t1)}
+
+/* HERO */
+.hero{text-align:center;padding:72px 40px 48px;max-width:780px;margin:0 auto}
+.hero-badge{display:inline-block;font-size:11px;font-weight:500;color:var(--accent);background:rgba(29,158,117,0.12);border:0.5px solid rgba(29,158,117,0.3);border-radius:20px;padding:4px 12px;margin-bottom:20px;letter-spacing:.04em;text-transform:uppercase}
+.hero h1{font-size:42px;font-weight:500;line-height:1.15;margin-bottom:16px;letter-spacing:-.02em}
+.hero h1 span{color:var(--accent)}
+.hero p{font-size:16px;color:var(--t2);line-height:1.75;margin-bottom:32px;max-width:560px;margin-left:auto;margin-right:auto}
+.hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-primary{background:var(--accent);color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:500;transition:.15s;border:none;cursor:pointer}
+.btn-primary:hover{opacity:.9}
+.btn-ghost{background:transparent;color:var(--t1);padding:10px 22px;border-radius:8px;font-size:13px;font-weight:500;border:0.5px solid var(--b1);transition:.15s;cursor:pointer}
+.btn-ghost:hover{background:var(--bg3)}
+
+/* PIPELINE OVERVIEW */
+.pipe-section{padding:0 40px 60px;max-width:1100px;margin:0 auto}
+.section-label{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:24px;text-align:center}
+.pipeline-strip{display:flex;align-items:stretch;gap:0;border:0.5px solid var(--b2);border-radius:12px;overflow:hidden;margin-bottom:48px}
+.pipe-step{flex:1;padding:20px 12px;border-right:0.5px solid var(--b2);text-align:center;transition:.15s;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.pipe-step:last-child{border-right:none}
+.pipe-step:hover{background:var(--bg3)}
+.pipe-step a{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+.pipe-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.pipe-step-name{font-size:11px;font-weight:500;color:var(--t1);line-height:1.3}
+.pipe-step-sub{font-size:10px;color:var(--t3);line-height:1.3}
+
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:1100px;margin:0 auto;padding:0 40px 60px}
+@media(max-width:700px){.cards-grid{grid-template-columns:1fr}.pipeline-strip{flex-direction:column}.pipe-step{border-right:none;border-bottom:0.5px solid var(--b2)}.pipe-step:last-child{border-bottom:none}.hero h1{font-size:28px}nav{padding:12px 20px}.nav-links{display:none}}
+
+.card{background:var(--bg2);border:0.5px solid var(--b2);border-radius:12px;padding:24px;transition:.2s;display:block;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--card-color,var(--accent));opacity:0;transition:.2s}
+.card:hover{border-color:var(--b1);transform:translateY(-2px)}
+.card:hover::before{opacity:1}
+.card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:18px}
+.card-num{font-size:11px;font-weight:500;color:var(--t3);letter-spacing:.06em;margin-bottom:8px}
+.card h2{font-size:16px;font-weight:500;margin-bottom:8px;color:var(--t1)}
+.card p{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:16px}
+.card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+.tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg3);color:var(--t3);border:0.5px solid var(--b2)}
+.card-link{font-size:12px;color:var(--accent);display:flex;align-items:center;gap:4px}
+.card-link::after{content:'→';transition:.15s}
+.card:hover .card-link::after{transform:translateX(3px)}
+
+/* ARCHITECTURE DIAGRAM */
+.arch-section{padding:0 40px 60px;max-width:1100px;margin:0 auto}
+.arch-box{background:var(--bg2);border:0.5px solid var(--b2);border-radius:12px;padding:32px;overflow-x:auto}
+
+/* GLOSSARY STRIP */
+.glossary-strip{background:var(--bg2);border-top:0.5px solid var(--b2);border-bottom:0.5px solid var(--b2);padding:40px;margin-bottom:60px}
+.glossary-strip h2{font-size:18px;font-weight:500;margin-bottom:4px;text-align:center}
+.glossary-strip p{font-size:13px;color:var(--t2);text-align:center;margin-bottom:24px}
+.term-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:1100px;margin:0 auto}
+@media(max-width:700px){.term-grid{grid-template-columns:repeat(2,1fr)}}
+.term-card{background:var(--bg3);border:0.5px solid var(--b2);border-radius:8px;padding:12px}
+.term-name{font-size:12px;font-weight:500;color:var(--accent);margin-bottom:4px}
+.term-def{font-size:11px;color:var(--t2);line-height:1.5}
+
+/* FOOTER */
+footer{text-align:center;padding:32px;font-size:12px;color:var(--t3);border-top:0.5px solid var(--b2)}
+footer span{color:var(--t2)}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:1100px;margin:0 auto 48px;padding:0 40px}
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--bg2);border:0.5px solid var(--b2);border-radius:10px;padding:20px;text-align:center}
+.stat-num{font-size:28px;font-weight:500;color:var(--t1);margin-bottom:4px}
+.stat-lbl{font-size:11px;color:var(--t3)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><div class="nav-dot"></div>MLOps Architecture</div>
+  <div class="nav-links">
+    <a href="01-data.html">Data</a>
+    <a href="02-features.html">Features</a>
+    <a href="03-training.html">Training</a>
+    <a href="04-serving.html">Serving</a>
+    <a href="05-observability.html">Observability</a>
+    <a href="06-cicd.html">CI/CD</a>
+    <a href="07-glossary.html">Glossary</a>
+    <a href="08-airflow.html">Airflow</a>
+    <a href="09-kubeflow.html">Kubeflow</a>
+    <a href="10-tools.html">Tools</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">Complete MLOps Reference</div>
+  <h1>From raw data to<br><span>production models</span></h1>
+  <p>A complete, production-grade MLOps architecture — every component, every connection, every tool. Designed for engineers targeting 40+ LPA roles at Flipkart, Swiggy, PhonePe, Walmart, and Sarvam AI.</p>
+  <div class="hero-actions">
+    <a href="01-data.html" class="btn-primary">Start: Data Pipeline</a>
+    <a href="07-glossary.html" class="btn-ghost">Glossary</a>
+  </div>
+</section>
+
+<!-- PIPELINE STRIP -->
+<div class="pipe-section">
+  <div class="section-label">The complete pipeline — click any stage</div>
+  <div class="pipeline-strip">
+    <div class="pipe-step"><a href="01-data.html">
+      <div class="pipe-icon" style="background:rgba(29,158,117,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="4" rx="1.5" fill="#1D9E75"/><rect x="2" y="8" width="12" height="2" rx="1" fill="#1D9E75" opacity=".6"/><rect x="2" y="12" width="8" height="2" rx="1" fill="#1D9E75" opacity=".3"/></svg></div>
+      <div class="pipe-step-name">Data</div>
+      <div class="pipe-step-sub">Sources → MinIO → DVC</div>
+    </a></div>
+    <div class="pipe-step"><a href="02-features.html">
+      <div class="pipe-icon" style="background:rgba(55,138,221,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="5" cy="8" r="3" fill="#378ADD"/><circle cx="11" cy="5" r="2" fill="#378ADD" opacity=".6"/><circle cx="11" cy="11" r="2" fill="#378ADD" opacity=".3"/></svg></div>
+      <div class="pipe-step-name">Features</div>
+      <div class="pipe-step-sub">Encode → Scale → Select</div>
+    </a></div>
+    <div class="pipe-step"><a href="03-training.html">
+      <div class="pipe-icon" style="background:rgba(239,159,39,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13L8 3L13 13" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="5" y1="10" x2="11" y2="10" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="pipe-step-name">Training</div>
+      <div class="pipe-step-sub">MLflow → Eval → Registry</div>
+    </a></div>
+    <div class="pipe-step"><a href="04-serving.html">
+      <div class="pipe-icon" style="background:rgba(127,119,221,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="5" width="12" height="8" rx="2" fill="#7F77DD" opacity=".3"/><rect x="5" y="2" width="6" height="4" rx="1" fill="#7F77DD"/></svg></div>
+      <div class="pipe-step-name">Serving</div>
+      <div class="pipe-step-sub">FastAPI → KServe</div>
+    </a></div>
+    <div class="pipe-step"><a href="05-observability.html">
+      <div class="pipe-icon" style="background:rgba(216,90,48,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="2,12 5,7 8,9 11,4 14,7" stroke="#D85A30" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div>
+      <div class="pipe-step-name">Observability</div>
+      <div class="pipe-step-sub">Prometheus → Grafana → Evidently</div>
+    </a></div>
+    <div class="pipe-step"><a href="06-cicd.html">
+      <div class="pipe-icon" style="background:rgba(99,153,34,0.15)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="4" r="2" fill="#639922"/><circle cx="12" cy="12" r="2" fill="#639922"/><path d="M6 4h4a2 2 0 012 2v4" stroke="#639922" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+      <div class="pipe-step-name">CI/CD</div>
+      <div class="pipe-step-sub">Git → Actions → Deploy</div>
+    </a></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">9</div><div class="stat-lbl">Pipeline stages</div></div>
+    <div class="stat"><div class="stat-num">30+</div><div class="stat-lbl">Tools covered</div></div>
+    <div class="stat"><div class="stat-num">100+</div><div class="stat-lbl">Terms defined</div></div>
+    <div class="stat"><div class="stat-num">60+</div><div class="stat-lbl">Code examples</div></div>
+  </div>
+</div>
+
+<!-- CARDS GRID -->
+<div class="cards-grid">
+
+  <a href="01-data.html" class="card" style="--card-color:#1D9E75">
+    <div class="card-icon" style="background:rgba(29,158,117,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="5" rx="2" fill="#1D9E75"/><rect x="3" y="10" width="14" height="3" rx="1.5" fill="#1D9E75" opacity=".6"/><rect x="3" y="15" width="9" height="2" rx="1" fill="#1D9E75" opacity=".3"/></svg></div>
+    <div class="card-num">01</div>
+    <h2>Data Pipeline</h2>
+    <p>How data flows from every source — databases, APIs, streams, files — into MinIO as the mandatory first landing zone. Validation, DVC versioning, and the first-time bootstrap explained.</p>
+    <div class="card-tags"><span class="tag">MinIO / S3</span><span class="tag">DVC</span><span class="tag">ETL</span><span class="tag">Kafka</span><span class="tag">Great Expectations</span></div>
+    <div class="card-link">Explore data pipeline</div>
+  </a>
+
+  <a href="02-features.html" class="card" style="--card-color:#378ADD">
+    <div class="card-icon" style="background:rgba(55,138,221,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="6" cy="10" r="4" fill="#378ADD" opacity=".8"/><circle cx="14" cy="7" r="3" fill="#378ADD" opacity=".5"/><circle cx="14" cy="14" r="2.5" fill="#378ADD" opacity=".3"/></svg></div>
+    <div class="card-num">02</div>
+    <h2>Feature Engineering</h2>
+    <p>Transforming raw data into model-ready features. Numeric scaling, categorical encoding, temporal extraction, text embeddings, feature selection, and the sklearn Pipeline that prevents train-serve skew.</p>
+    <div class="card-tags"><span class="tag">StandardScaler</span><span class="tag">OHE</span><span class="tag">TF-IDF</span><span class="tag">SHAP</span><span class="tag">Embeddings</span></div>
+    <div class="card-link">Explore features</div>
+  </a>
+
+  <a href="03-training.html" class="card" style="--card-color:#EF9F27">
+    <div class="card-icon" style="background:rgba(239,159,39,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 16L10 4L16 16" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><line x1="6.5" y1="12" x2="13.5" y2="12" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <div class="card-num">03</div>
+    <h2>Training Pipeline</h2>
+    <p>From features to a registered production model. MLflow experiment tracking, hyperparameter tuning, evaluation gates (val → test), model registry promotion, and artifact logging to MinIO.</p>
+    <div class="card-tags"><span class="tag">MLflow</span><span class="tag">XGBoost</span><span class="tag">Optuna</span><span class="tag">Model Registry</span><span class="tag">PostgreSQL</span></div>
+    <div class="card-link">Explore training</div>
+  </a>
+
+  <a href="04-serving.html" class="card" style="--card-color:#7F77DD">
+    <div class="card-icon" style="background:rgba(127,119,221,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="10" rx="2.5" fill="#7F77DD" opacity=".3"/><rect x="6" y="3" width="8" height="5" rx="1.5" fill="#7F77DD"/></svg></div>
+    <div class="card-num">04</div>
+    <h2>Serving Pipeline</h2>
+    <p>How predictions reach users. FastAPI gateway with auth and validation, KServe InferenceService on K3s, canary rollouts, online vs batch inference, request/response logging to MinIO.</p>
+    <div class="card-tags"><span class="tag">FastAPI</span><span class="tag">KServe</span><span class="tag">K3s</span><span class="tag">Docker</span><span class="tag">Canary</span></div>
+    <div class="card-link">Explore serving</div>
+  </a>
+
+  <a href="05-observability.html" class="card" style="--card-color:#D85A30">
+    <div class="card-icon" style="background:rgba(216,90,48,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><polyline points="3,15 6,9 9,11 12,5 15,8 18,5" stroke="#D85A30" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></div>
+    <div class="card-num">05</div>
+    <h2>Observability</h2>
+    <p>Knowing when things break before users do. Prometheus metrics, Grafana dashboards, Evidently drift detection (PSI, KS test), alerting, and the feedback loop that triggers retraining.</p>
+    <div class="card-tags"><span class="tag">Prometheus</span><span class="tag">Grafana</span><span class="tag">Evidently</span><span class="tag">PSI</span><span class="tag">AlertManager</span></div>
+    <div class="card-link">Explore observability</div>
+  </a>
+
+  <a href="06-cicd.html" class="card" style="--card-color:#639922">
+    <div class="card-icon" style="background:rgba(99,153,34,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="5" cy="5" r="2.5" fill="#639922"/><circle cx="15" cy="15" r="2.5" fill="#639922"/><path d="M7.5 5H13a2 2 0 012 2v6" stroke="#639922" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></div>
+    <div class="card-num">06</div>
+    <h2>CI/CD Loop</h2>
+    <p>Automating the entire lifecycle. Git push triggers lint, test, DVC repro, Docker build, K3s deploy. MLflow promotion triggers CD webhook. Drift triggers retraining. The loop never stops.</p>
+    <div class="card-tags"><span class="tag">GitHub Actions</span><span class="tag">Docker</span><span class="tag">Helm</span><span class="tag">DVC repro</span><span class="tag">pytest</span></div>
+    <div class="card-link">Explore CI/CD</div>
+  </a>
+
+  <a href="08-airflow.html" class="card" style="--card-color:#017CEE">
+    <div class="card-icon" style="background:rgba(1,124,238,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="4" r="2.5" fill="#017CEE"/><circle cx="4" cy="14" r="2.5" fill="#017CEE" opacity=".6"/><circle cx="16" cy="14" r="2.5" fill="#017CEE" opacity=".6"/><line x1="10" y1="6.5" x2="5" y2="12" stroke="#017CEE" stroke-width="1" opacity=".5"/><line x1="10" y1="6.5" x2="15" y2="12" stroke="#017CEE" stroke-width="1" opacity=".5"/></svg></div>
+    <div class="card-num">07</div>
+    <h2>Apache Airflow</h2>
+    <p>DAG anatomy, every operator type (Python, Bash, KubernetesPod, Sensor, BranchPython), three production MLOps DAG patterns — ingestion, training, and drift-triggered retraining. Airflow vs alternatives comparison.</p>
+    <div class="card-tags"><span class="tag">DAG</span><span class="tag">KubernetesPodOperator</span><span class="tag">S3KeySensor</span><span class="tag">XCom</span><span class="tag">Helm</span></div>
+    <div class="card-link">Explore Airflow</div>
+  </a>
+
+  <a href="09-kubeflow.html" class="card" style="--card-color:#00B0FF">
+    <div class="card-icon" style="background:rgba(0,176,255,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="5" height="10" rx="1.5" fill="#00B0FF" opacity=".5"/><rect x="7.5" y="3" width="5" height="15" rx="1.5" fill="#00B0FF"/><rect x="13" y="6" width="5" height="12" rx="1.5" fill="#00B0FF" opacity=".7"/></svg></div>
+    <div class="card-num">08</div>
+    <h2>Kubeflow Pipelines</h2>
+    <p>KFP components, full pipeline with dsl.If conditions, Katib automated hyperparameter tuning, and a full Airflow vs KFP comparison matrix covering 10 dimensions.</p>
+    <div class="card-tags"><span class="tag">KFP</span><span class="tag">Katib</span><span class="tag">MLMD</span><span class="tag">Argo Workflows</span><span class="tag">K8s</span></div>
+    <div class="card-link">Explore Kubeflow</div>
+  </a>
+
+  <a href="10-tools.html" class="card" style="--card-color:#E24B4A">
+    <div class="card-icon" style="background:rgba(226,75,74,0.12)"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3L3 7v6l7 4 7-4V7L10 3z" stroke="#E24B4A" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg></div>
+    <div class="card-num">09</div>
+    <h2>Tools Deep Dive</h2>
+    <p>Great Expectations (suites, checkpoints, Data Docs), Feast feature store, dbt SQL transforms, BentoML serving, Seldon Core inference graph, and a full tool decision matrix.</p>
+    <div class="card-tags"><span class="tag">Great Expectations</span><span class="tag">Feast</span><span class="tag">dbt</span><span class="tag">BentoML</span><span class="tag">Seldon</span></div>
+    <div class="card-link">Explore all tools</div>
+  </a>
+
+</div>
+
+
+<!-- ARCHITECTURE DIAGRAM -->
+<div class="arch-section">
+  <div class="section-label">End-to-end architecture overview</div>
+  <div class="arch-box">
+    <svg width="100%" viewBox="0 0 1020 420" role="img">
+      <title>Complete MLOps architecture</title>
+      <desc>End-to-end view from data sources through serving and observability</desc>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- Sources zone -->
+      <rect x="10" y="10" width="160" height="400" rx="10" fill="none" stroke="rgba(29,158,117,0.3)" stroke-width="0.5" stroke-dasharray="5 3"/>
+      <text x="90" y="32" text-anchor="middle" style="fill:#1D9E75;font-size:10px;font-family:system-ui;font-weight:500;text-transform:uppercase;letter-spacing:.05em">Sources</text>
+      <rect x="22" y="44" width="136" height="30" rx="6" fill="rgba(29,158,117,0.1)" stroke="rgba(29,158,117,0.4)" stroke-width="0.5"/>
+      <text x="90" y="64" text-anchor="middle" style="fill:#9FE1CB;font-size:11px;font-family:system-ui">Database (ETL)</text>
+      <rect x="22" y="84" width="136" height="30" rx="6" fill="rgba(29,158,117,0.1)" stroke="rgba(29,158,117,0.4)" stroke-width="0.5"/>
+      <text x="90" y="104" text-anchor="middle" style="fill:#9FE1CB;font-size:11px;font-family:system-ui">Kafka / Streams</text>
+      <rect x="22" y="124" width="136" height="30" rx="6" fill="rgba(29,158,117,0.1)" stroke="rgba(29,158,117,0.4)" stroke-width="0.5"/>
+      <text x="90" y="144" text-anchor="middle" style="fill:#9FE1CB;font-size:11px;font-family:system-ui">REST APIs</text>
+      <rect x="22" y="164" width="136" height="30" rx="6" fill="rgba(29,158,117,0.1)" stroke="rgba(29,158,117,0.4)" stroke-width="0.5"/>
+      <text x="90" y="184" text-anchor="middle" style="fill:#9FE1CB;font-size:11px;font-family:system-ui">File uploads</text>
+      <rect x="22" y="204" width="136" height="30" rx="6" fill="rgba(29,158,117,0.1)" stroke="rgba(29,158,117,0.4)" stroke-width="0.5"/>
+      <text x="90" y="224" text-anchor="middle" style="fill:#9FE1CB;font-size:11px;font-family:system-ui">Feedback labels</text>
+
+      <!-- Arrow sources → MinIO raw -->
+      <line x1="158" y1="135" x2="192" y2="135" stroke="#1D9E75" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Storage zone -->
+      <rect x="192" y="10" width="160" height="400" rx="10" fill="none" stroke="rgba(55,138,221,0.3)" stroke-width="0.5" stroke-dasharray="5 3"/>
+      <text x="272" y="32" text-anchor="middle" style="fill:#378ADD;font-size:10px;font-family:system-ui;font-weight:500;text-transform:uppercase;letter-spacing:.05em">Storage</text>
+      <rect x="204" y="44" width="136" height="50" rx="6" fill="rgba(55,138,221,0.1)" stroke="rgba(55,138,221,0.5)" stroke-width="0.5"/>
+      <text x="272" y="64" text-anchor="middle" style="fill:#B5D4F4;font-size:11px;font-family:system-ui;font-weight:500">MinIO</text>
+      <text x="272" y="80" text-anchor="middle" style="fill:#378ADD;font-size:10px;font-family:system-ui">raw/ · processed/ · models/</text>
+      <rect x="204" y="106" width="136" height="40" rx="6" fill="rgba(55,138,221,0.08)" stroke="rgba(55,138,221,0.3)" stroke-width="0.5"/>
+      <text x="272" y="122" text-anchor="middle" style="fill:#B5D4F4;font-size:11px;font-family:system-ui;font-weight:500">DVC cache</text>
+      <text x="272" y="137" text-anchor="middle" style="fill:#378ADD;font-size:10px;font-family:system-ui">mlops-dvc-cache/</text>
+      <rect x="204" y="158" width="136" height="40" rx="6" fill="rgba(55,138,221,0.08)" stroke="rgba(55,138,221,0.3)" stroke-width="0.5"/>
+      <text x="272" y="174" text-anchor="middle" style="fill:#B5D4F4;font-size:11px;font-family:system-ui;font-weight:500">MLflow + PostgreSQL</text>
+      <text x="272" y="189" text-anchor="middle" style="fill:#378ADD;font-size:10px;font-family:system-ui">experiments · registry</text>
+      <rect x="204" y="210" width="136" height="40" rx="6" fill="rgba(55,138,221,0.08)" stroke="rgba(55,138,221,0.3)" stroke-width="0.5"/>
+      <text x="272" y="226" text-anchor="middle" style="fill:#B5D4F4;font-size:11px;font-family:system-ui;font-weight:500">Git / GitHub</text>
+      <text x="272" y="241" text-anchor="middle" style="fill:#378ADD;font-size:10px;font-family:system-ui">code · .dvc pointers</text>
+
+      <!-- Arrow storage → ML zone -->
+      <line x1="330" y1="200" x2="368" y2="200" stroke="#378ADD" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+
+      <!-- ML zone -->
+      <rect x="368" y="10" width="180" height="400" rx="10" fill="none" stroke="rgba(239,159,39,0.3)" stroke-width="0.5" stroke-dasharray="5 3"/>
+      <text x="458" y="32" text-anchor="middle" style="fill:#EF9F27;font-size:10px;font-family:system-ui;font-weight:500;text-transform:uppercase;letter-spacing:.05em">ML Pipeline</text>
+      <rect x="380" y="44" width="156" height="36" rx="6" fill="rgba(239,159,39,0.1)" stroke="rgba(239,159,39,0.4)" stroke-width="0.5"/>
+      <text x="458" y="57" text-anchor="middle" style="fill:#FAC775;font-size:11px;font-family:system-ui;font-weight:500">Data validation</text>
+      <text x="458" y="72" text-anchor="middle" style="fill:#EF9F27;font-size:10px;font-family:system-ui">Great Expectations</text>
+      <rect x="380" y="92" width="156" height="36" rx="6" fill="rgba(239,159,39,0.1)" stroke="rgba(239,159,39,0.4)" stroke-width="0.5"/>
+      <text x="458" y="105" text-anchor="middle" style="fill:#FAC775;font-size:11px;font-family:system-ui;font-weight:500">Feature engineering</text>
+      <text x="458" y="120" text-anchor="middle" style="fill:#EF9F27;font-size:10px;font-family:system-ui">sklearn Pipeline</text>
+      <rect x="380" y="140" width="156" height="36" rx="6" fill="rgba(239,159,39,0.1)" stroke="rgba(239,159,39,0.4)" stroke-width="0.5"/>
+      <text x="458" y="153" text-anchor="middle" style="fill:#FAC775;font-size:11px;font-family:system-ui;font-weight:500">Model training</text>
+      <text x="458" y="168" text-anchor="middle" style="fill:#EF9F27;font-size:10px;font-family:system-ui">RF · XGBoost · PyTorch</text>
+      <rect x="380" y="188" width="156" height="36" rx="6" fill="rgba(239,159,39,0.1)" stroke="rgba(239,159,39,0.4)" stroke-width="0.5"/>
+      <text x="458" y="201" text-anchor="middle" style="fill:#FAC775;font-size:11px;font-family:system-ui;font-weight:500">Evaluation gate</text>
+      <text x="458" y="216" text-anchor="middle" style="fill:#EF9F27;font-size:10px;font-family:system-ui">val → test → RMSE / F1</text>
+      <rect x="380" y="236" width="156" height="36" rx="6" fill="rgba(239,159,39,0.1)" stroke="rgba(239,159,39,0.4)" stroke-width="0.5"/>
+      <text x="458" y="249" text-anchor="middle" style="fill:#FAC775;font-size:11px;font-family:system-ui;font-weight:500">Model registry</text>
+      <text x="458" y="264" text-anchor="middle" style="fill:#EF9F27;font-size:10px;font-family:system-ui">Staging → Production</text>
+
+      <!-- Vertical arrows in ML -->
+      <line x1="458" y1="80" x2="458" y2="90" stroke="rgba(239,159,39,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+      <line x1="458" y1="128" x2="458" y2="138" stroke="rgba(239,159,39,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+      <line x1="458" y1="176" x2="458" y2="186" stroke="rgba(239,159,39,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+      <line x1="458" y1="224" x2="458" y2="234" stroke="rgba(239,159,39,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Arrow ML → Serving -->
+      <line x1="536" y1="254" x2="574" y2="254" stroke="#EF9F27" stroke-width="1" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Serving zone -->
+      <rect x="574" y="10" width="180" height="260" rx="10" fill="none" stroke="rgba(127,119,221,0.3)" stroke-width="0.5" stroke-dasharray="5 3"/>
+      <text x="664" y="32" text-anchor="middle" style="fill:#7F77DD;font-size:10px;font-family:system-ui;font-weight:500;text-transform:uppercase;letter-spacing:.05em">Serving</text>
+      <rect x="586" y="44" width="156" height="36" rx="6" fill="rgba(127,119,221,0.1)" stroke="rgba(127,119,221,0.4)" stroke-width="0.5"/>
+      <text x="664" y="57" text-anchor="middle" style="fill:#CECBF6;font-size:11px;font-family:system-ui;font-weight:500">FastAPI gateway</text>
+      <text x="664" y="72" text-anchor="middle" style="fill:#7F77DD;font-size:10px;font-family:system-ui">auth · validate · rate limit</text>
+      <rect x="586" y="92" width="156" height="36" rx="6" fill="rgba(127,119,221,0.1)" stroke="rgba(127,119,221,0.4)" stroke-width="0.5"/>
+      <text x="664" y="105" text-anchor="middle" style="fill:#CECBF6;font-size:11px;font-family:system-ui;font-weight:500">KServe InferenceService</text>
+      <text x="664" y="120" text-anchor="middle" style="fill:#7F77DD;font-size:10px;font-family:system-ui">on K3s · v2 protocol</text>
+      <rect x="586" y="140" width="156" height="36" rx="6" fill="rgba(127,119,221,0.1)" stroke="rgba(127,119,221,0.4)" stroke-width="0.5"/>
+      <text x="664" y="153" text-anchor="middle" style="fill:#CECBF6;font-size:11px;font-family:system-ui;font-weight:500">Canary rollout</text>
+      <text x="664" y="168" text-anchor="middle" style="fill:#7F77DD;font-size:10px;font-family:system-ui">90/10 traffic split</text>
+      <rect x="586" y="188" width="156" height="36" rx="6" fill="rgba(127,119,221,0.1)" stroke="rgba(127,119,221,0.4)" stroke-width="0.5"/>
+      <text x="664" y="201" text-anchor="middle" style="fill:#CECBF6;font-size:11px;font-family:system-ui;font-weight:500">Request logging</text>
+      <text x="664" y="216" text-anchor="middle" style="fill:#7F77DD;font-size:10px;font-family:system-ui">to MinIO → Evidently</text>
+      <line x1="664" y1="80" x2="664" y2="90" stroke="rgba(127,119,221,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+      <line x1="664" y1="128" x2="664" y2="138" stroke="rgba(127,119,221,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+      <line x1="664" y1="176" x2="664" y2="186" stroke="rgba(127,119,221,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Client ↔ serving -->
+      <rect x="824" y="100" width="80" height="36" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+      <text x="864" y="118" text-anchor="middle" style="fill:#a8a6a0;font-size:11px;font-family:system-ui">Client</text>
+      <line x1="824" y1="118" x2="742" y2="118" stroke="rgba(255,255,255,0.25)" stroke-width="0.8" marker-end="url(#arr)" fill="none"/>
+      <line x1="742" y1="112" x2="824" y2="112" stroke="rgba(255,255,255,0.25)" stroke-width="0.8" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Observability zone -->
+      <rect x="574" y="290" width="440" height="120" rx="10" fill="none" stroke="rgba(216,90,48,0.3)" stroke-width="0.5" stroke-dasharray="5 3"/>
+      <text x="794" y="312" text-anchor="middle" style="fill:#D85A30;font-size:10px;font-family:system-ui;font-weight:500;text-transform:uppercase;letter-spacing:.05em">Observability &amp; CI/CD</text>
+      <rect x="586" y="322" width="120" height="36" rx="6" fill="rgba(216,90,48,0.1)" stroke="rgba(216,90,48,0.3)" stroke-width="0.5"/>
+      <text x="646" y="335" text-anchor="middle" style="fill:#F0997B;font-size:11px;font-family:system-ui;font-weight:500">Prometheus</text>
+      <text x="646" y="350" text-anchor="middle" style="fill:#D85A30;font-size:10px;font-family:system-ui">metrics scrape</text>
+      <rect x="718" y="322" width="120" height="36" rx="6" fill="rgba(216,90,48,0.1)" stroke="rgba(216,90,48,0.3)" stroke-width="0.5"/>
+      <text x="778" y="335" text-anchor="middle" style="fill:#F0997B;font-size:11px;font-family:system-ui;font-weight:500">Grafana</text>
+      <text x="778" y="350" text-anchor="middle" style="fill:#D85A30;font-size:10px;font-family:system-ui">dashboards · alerts</text>
+      <rect x="850" y="322" width="120" height="36" rx="6" fill="rgba(99,153,34,0.1)" stroke="rgba(99,153,34,0.3)" stroke-width="0.5"/>
+      <text x="910" y="335" text-anchor="middle" style="fill:#C0DD97;font-size:11px;font-family:system-ui;font-weight:500">GitHub Actions</text>
+      <text x="910" y="350" text-anchor="middle" style="fill:#639922;font-size:10px;font-family:system-ui">CI/CD · deploy</text>
+      <line x1="706" y1="340" x2="716" y2="340" stroke="rgba(216,90,48,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+      <line x1="838" y1="340" x2="848" y2="340" stroke="rgba(216,90,48,0.5)" stroke-width="0.5" marker-end="url(#arr)" fill="none"/>
+
+      <!-- Drift feedback loop arrow -->
+      <path d="M664 290 Q664 280 620 270 Q450 250 458 282" stroke="#D85A30" stroke-width="0.8" stroke-dasharray="4 3" fill="none" marker-end="url(#arr)"/>
+      <text x="550" y="270" text-anchor="middle" style="fill:#D85A30;font-size:9px;font-family:system-ui">drift → retrain</text>
+    </svg>
+  </div>
+</div>
+
+<!-- GLOSSARY STRIP -->
+<div class="glossary-strip">
+  <h2>Key terminology</h2>
+  <p>The 20 most important MLOps terms. <a href="07-glossary.html" style="color:var(--accent)">See full 100+ term glossary →</a></p>
+  <div class="term-grid">
+    <div class="term-card"><div class="term-name">MLOps</div><div class="term-def">Machine Learning Operations — applying DevOps principles to the ML lifecycle to make model deployment reliable and repeatable.</div></div>
+    <div class="term-card"><div class="term-name">Feature store</div><div class="term-def">Centralised system that stores, serves, and manages ML features. Online store (Redis) for serving, offline (MinIO) for training.</div></div>
+    <div class="term-card"><div class="term-name">Data drift</div><div class="term-def">Statistical shift in input feature distributions between training time and serving time. Detected by PSI or KS test.</div></div>
+    <div class="term-card"><div class="term-name">Concept drift</div><div class="term-def">The relationship between features and the target changes. Harder to detect — requires ground-truth labels from production.</div></div>
+    <div class="term-card"><div class="term-name">Train-serve skew</div><div class="term-def">Different feature transforms at training vs serving time causing silent prediction errors. Prevented by serialising the full sklearn Pipeline.</div></div>
+    <div class="term-card"><div class="term-name">Model registry</div><div class="term-def">Centralised store of versioned model artifacts with lifecycle stages: None → Staging → Production. MLflow provides this.</div></div>
+    <div class="term-card"><div class="term-name">KServe</div><div class="term-def">Kubernetes-native model serving platform. Provides auto-scaling, canary rollouts, and the v2 inference protocol on top of K3s.</div></div>
+    <div class="term-card"><div class="term-name">DVC</div><div class="term-def">Data Version Control. Git for data — tracks dataset versions via MD5 hash pointers stored in Git, actual bytes in MinIO.</div></div>
+    <div class="term-card"><div class="term-name">Canary rollout</div><div class="term-def">Sending a small % of traffic (e.g. 10%) to a new model version before promoting it to 100%. Risk-free deployment pattern.</div></div>
+    <div class="term-card"><div class="term-name">PSI</div><div class="term-def">Population Stability Index. Measures distribution shift. &lt;0.1 stable, 0.1–0.2 watch, &gt;0.2 alert and retrain.</div></div>
+    <div class="term-card"><div class="term-name">Inference latency</div><div class="term-def">Time from receiving a prediction request to returning a response. SLO target is usually p99 &lt; 200ms.</div></div>
+    <div class="term-card"><div class="term-name">Data lineage</div><div class="term-def">The ability to trace any model back to the exact dataset, code, and config that produced it. MLflow run + DVC hash provides this.</div></div>
+    <div class="term-card"><div class="term-name">Evaluation gate</div><div class="term-def">A metric threshold a model must pass before being promoted to production. E.g. RMSE &lt; 0.5 on the held-out test set.</div></div>
+    <div class="term-card"><div class="term-name">Reproducibility</div><div class="term-def">Given a git SHA, being able to recreate the exact dataset, features, model, and evaluation results from any past experiment.</div></div>
+    <div class="term-card"><div class="term-name">A/B testing</div><div class="term-def">Running two model versions simultaneously on production traffic to compare real-world performance, not just offline metrics.</div></div>
+    <div class="term-card"><div class="term-name">Feature importance</div><div class="term-def">A measure of how much each feature contributes to model predictions. SHAP gives per-prediction, per-feature attribution.</div></div>
+    <div class="term-card"><div class="term-name">Hyperparameter</div><div class="term-def">Configuration that controls training (learning rate, tree depth, number of estimators) — not learned from data, set before training.</div></div>
+    <div class="term-card"><div class="term-name">Shadow mode</div><div class="term-def">Running a new model in parallel with the live model without serving its predictions. Compares outputs to catch skew before rollout.</div></div>
+    <div class="term-card"><div class="term-name">Cold start</div><div class="term-def">The first inference request after a model pod starts. May be slow due to model loading from MinIO. Mitigated by pre-warming.</div></div>
+    <div class="term-card"><div class="term-name">ONNX</div><div class="term-def">Open Neural Network Exchange — a portable model format that allows models trained in one framework to be served in another.</div></div>
+  </div>
+</div>
+
+<footer>
+  Built for MLOps interview prep — <span>Flipkart · Swiggy · PhonePe · Walmart · Sarvam AI</span><br>
+  <span style="color:var(--t3);margin-top:6px;display:block">Home lab: Proxmox → K3s · MinIO :30900 · MLflow :30500 · Grafana · Prometheus</span>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Kubeflow Pipelines — MLOps Architecture</title>
+<link rel="stylesheet" href="shared.css"/>
+<style>:root{--accent-color:#1565C0}.hero-accent{color:#00B0FF}</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo"><div class="nav-dot"></div>MLOps Architecture</a>
+  <div class="nav-links">
+    <a href="01-data.html">Data</a><a href="02-features.html">Features</a>
+    <a href="03-training.html">Training</a><a href="04-serving.html">Serving</a>
+    <a href="05-observability.html">Observability</a><a href="06-cicd.html">CI/CD</a>
+    <a href="07-glossary.html">Glossary</a>
+    <a href="08-airflow.html">Airflow</a>
+    <a href="09-kubeflow.html" class="active">Kubeflow</a>
+    <a href="10-tools.html">Tools</a>
+  </div>
+</nav>
+
+<div class="page-hero">
+  <div class="page-hero-badge"><div class="page-hero-badge-dot" style="background:#00B0FF"></div>ML Platform</div>
+  <h1>Kubeflow Pipelines — <span class="hero-accent">KFP, Katib, Serving</span></h1>
+  <p>Kubeflow is a complete ML platform built on top of Kubernetes. Kubeflow Pipelines (KFP) orchestrates ML workflows as containerised components. Katib does automated hyperparameter tuning. KServe handles model serving. This page covers every component with full code examples and a direct comparison with Airflow.</p>
+</div>
+
+<div class="content">
+
+<!-- WHAT IS KUBEFLOW -->
+<div class="section">
+  <div class="section-title">Kubeflow — the complete ML platform</div>
+  <div class="row3">
+    <div class="card al" style="--al-color:#00B0FF">
+      <div class="lbl">Kubeflow Pipelines (KFP)</div>
+      <div class="val">ML workflow orchestration. Each step is a Docker container. Steps are chained into a pipeline YAML. Runs on K8s natively. The Argo Workflows engine executes the DAG underneath.</div>
+    </div>
+    <div class="card al" style="--al-color:#00B0FF">
+      <div class="lbl">Katib</div>
+      <div class="val">Automated hyperparameter tuning and NAS. Defines a search space (learning_rate: 0.01–0.1, n_estimators: 50–500), runs parallel training jobs, picks the best. Bayesian, grid, random, evolutionary strategies.</div>
+    </div>
+    <div class="card al" style="--al-color:#00B0FF">
+      <div class="lbl">KFP + KServe</div>
+      <div class="val">Kubeflow's serving layer is KServe — the same KServe you already run. Kubeflow adds UI management of InferenceServices on top. Canary rollout, traffic management, model monitoring all in one platform.</div>
+    </div>
+  </div>
+  <div class="callout blue"><strong>Key insight:</strong> Kubeflow is ML-first. Airflow is general-purpose data engineering that includes ML. If your entire stack is ML, Kubeflow gives a tighter integration. If you have mixed ETL + ML + analytics, Airflow wins on breadth.</div>
+</div>
+
+<!-- KFP COMPONENTS -->
+<div class="section">
+  <div class="section-title">KFP core concepts</div>
+  <div class="card full">
+    <table class="mini-t">
+      <tr><td>Component</td><td>The atomic building block. A Python function or a containerised script that does one thing (featurize, train, evaluate). Described by its inputs, outputs, and the Docker image it runs in.</td></tr>
+      <tr><td>Pipeline</td><td>A graph of Components with dependencies. Defined in Python using the @pipeline decorator. Compiled to a pipeline YAML that KFP executes on K8s.</td></tr>
+      <tr><td>Experiment</td><td>A grouping of pipeline runs. Analogous to an MLflow experiment. Allows comparing different runs of the same pipeline.</td></tr>
+      <tr><td>Run</td><td>One execution of a pipeline for a specific set of inputs. Each run creates Argo Workflow pods on K8s. Logs and artifacts stored in MinIO.</td></tr>
+      <tr><td>Artifact</td><td>Data passed between components via typed, tracked paths. Dataset, Model, Metrics, HTML artifacts — all versioned by KFP's ML Metadata (MLMD) store.</td></tr>
+      <tr><td>MLMD</td><td>ML Metadata store. KFP's built-in lineage tracking. Records which artifact was produced by which component execution. Stored in MySQL on K8s.</td></tr>
+      <tr><td>Recurring Run</td><td>A pipeline scheduled on a cron expression. Alternative to Airflow scheduling for ML pipelines that don't need complex cross-system dependencies.</td></tr>
+      <tr><td>Argo Workflows</td><td>The underlying K8s workflow engine KFP is built on. Each KFP step becomes an Argo Workflow step — a K8s pod. You can inspect raw Argo Workflows for debugging.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- KFP COMPONENT DEFINITION -->
+<div class="section">
+  <div class="section-title">Defining KFP components — two ways</div>
+  <div class="row2">
+    <div class="card full al" style="--al-color:#00B0FF">
+      <div class="lbl">Method 1 — @component decorator (lightweight Python)</div>
+      <div class="code"><span class="kw">from</span> kfp <span class="kw">import</span> dsl
+<span class="kw">from</span> kfp.dsl <span class="kw">import</span> Input, Output, Dataset, Model, Metrics
+
+@dsl.component(
+    base_image=<span class="str">"python:3.11-slim"</span>,
+    packages_to_install=[<span class="str">"pandas"</span>, <span class="str">"scikit-learn"</span>, <span class="str">"mlflow"</span>]
+)
+<span class="kw">def</span> train_model(
+    train_data: Input[Dataset],     <span class="cm"># typed input — KFP tracks lineage</span>
+    val_data:   Input[Dataset],
+    model_out:  Output[Model],      <span class="cm"># typed output artifact</span>
+    metrics:    Output[Metrics],    <span class="cm"># shown in KFP UI</span>
+    n_estimators: int = 100,
+    mlflow_uri: str = <span class="str">"http://192.168.1.15:30500"</span>,
+):
+    <span class="kw">import</span> pandas <span class="kw">as</span> pd, mlflow, pickle
+    <span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestRegressor
+    <span class="kw">from</span> sklearn.metrics <span class="kw">import</span> mean_squared_error
+
+    X_train = pd.read_parquet(train_data.path)
+    X_val   = pd.read_parquet(val_data.path)
+    y_train = X_train.pop(<span class="str">"target"</span>)
+    y_val   = X_val.pop(<span class="str">"target"</span>)
+
+    mlflow.set_tracking_uri(mlflow_uri)
+    <span class="kw">with</span> mlflow.start_run():
+        rf = RandomForestRegressor(n_estimators=n_estimators)
+        rf.fit(X_train, y_train)
+        rmse = mean_squared_error(y_val, rf.predict(X_val)) ** 0.5
+        mlflow.log_metric(<span class="str">"val_rmse"</span>, rmse)
+
+        <span class="cm"># Save model to KFP output path</span>
+        <span class="kw">with</span> open(model_out.path, <span class="str">"wb"</span>) <span class="kw">as</span> f:
+            pickle.dump(rf, f)
+
+        <span class="cm"># Log metrics to KFP UI</span>
+        metrics.log_metric(<span class="str">"val_rmse"</span>, rmse)</div>
+    </div>
+    <div class="card full al" style="--al-color:#00B0FF">
+      <div class="lbl">Method 2 — ContainerSpec (full Docker image, any language)</div>
+      <div class="code"><span class="kw">from</span> kfp <span class="kw">import</span> dsl
+
+<span class="cm"># Use a pre-built image — any language, any framework</span>
+@dsl.container_component
+<span class="kw">def</span> run_spark_featurization(date: str) -> dsl.ContainerSpec:
+    <span class="kw">return</span> dsl.ContainerSpec(
+        image=<span class="str">"ghcr.io/koyilada-rishi/spark-feature:latest"</span>,
+        command=[<span class="str">"spark-submit"</span>],
+        args=[
+            <span class="str">"--master"</span>, <span class="str">"k8s://https://kubernetes:443"</span>,
+            <span class="str">"src/featurize.py"</span>,
+            <span class="str">"--date"</span>, date,
+        ],
+    )
+
+<span class="cm"># Useful when:</span>
+<span class="cm"># - You need Spark/Java/Go/R — not just Python</span>
+<span class="cm"># - Heavy dependencies that bloat the decorator image</span>
+<span class="cm"># - Reusing an existing Docker image</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- KFP PIPELINE DEFINITION -->
+<div class="section">
+  <div class="section-title">Full KFP pipeline — data to deployed model</div>
+  <div class="card full">
+    <div class="lbl">pipeline.py — complete end-to-end KFP pipeline with conditions</div>
+    <div class="code"><span class="kw">from</span> kfp <span class="kw">import</span> dsl, compiler
+<span class="kw">from</span> kfp.dsl <span class="kw">import</span> Input, Output, Dataset, Model, Metrics
+
+@dsl.pipeline(
+    name=<span class="str">"mlops-california-housing"</span>,
+    description=<span class="str">"End-to-end training and deployment for housing price model"</span>,
+)
+<span class="kw">def</span> mlops_pipeline(
+    date: str = <span class="str">"2025-08-01"</span>,
+    n_estimators: int = 100,
+    rmse_threshold: float = 0.50,
+):
+    <span class="cm"># Step 1: Validate raw data in MinIO</span>
+    validate_task = validate_data(date=date)
+
+    <span class="cm"># Step 2: Featurize — depends on validate succeeding</span>
+    featurize_task = featurize(
+        date=date,
+    ).after(validate_task)
+
+    <span class="cm"># Step 3: Train — takes featurize output as input</span>
+    train_task = train_model(
+        train_data=featurize_task.outputs[<span class="str">"train_data"</span>],
+        val_data=featurize_task.outputs[<span class="str">"val_data"</span>],
+        n_estimators=n_estimators,
+    )
+
+    <span class="cm"># Step 4: Evaluate — conditional promotion</span>
+    eval_task = evaluate_model(
+        model=train_task.outputs[<span class="str">"model_out"</span>],
+        test_data=featurize_task.outputs[<span class="str">"test_data"</span>],
+    )
+
+    <span class="cm"># Step 5: Promote only if RMSE below threshold</span>
+    <span class="kw">with</span> dsl.If(eval_task.outputs[<span class="str">"rmse"</span>] < rmse_threshold):
+        promote_task = promote_model(
+            model=train_task.outputs[<span class="str">"model_out"</span>],
+            model_name=<span class="str">"california-housing"</span>,
+        )
+
+    <span class="cm"># Resource customisation per step</span>
+    train_task.set_memory_request(<span class="str">"4G"</span>)
+    train_task.set_cpu_request(<span class="str">"2"</span>)
+    train_task.set_gpu_limit(<span class="str">"1"</span>)   <span class="cm"># optional: GPU training</span>
+
+<span class="cm"># Compile to YAML</span>
+compiler.Compiler().compile(
+    pipeline_func=mlops_pipeline,
+    package_path=<span class="str">"pipeline.yaml"</span>
+)
+
+<span class="cm"># Submit run via Python client</span>
+<span class="kw">import</span> kfp
+client = kfp.Client(host=<span class="str">"http://192.168.1.15:8080"</span>)
+client.create_run_from_pipeline_package(
+    pipeline_file=<span class="str">"pipeline.yaml"</span>,
+    arguments={<span class="str">"date"</span>: <span class="str">"2025-08-01"</span>, <span class="str">"n_estimators"</span>: 200},
+    run_name=<span class="str">"housing-run-20250801"</span>,
+    experiment_name=<span class="str">"california-housing"</span>,
+)</div>
+  </div>
+</div>
+
+<!-- KATIB -->
+<div class="section">
+  <div class="section-title">Katib — automated hyperparameter tuning</div>
+  <div class="row2">
+    <div class="card full al" style="--al-color:#00B0FF">
+      <div class="lbl">What Katib does</div>
+      <div class="val">Katib runs dozens of training jobs in parallel, each with different hyperparameters from your search space. It learns from each run (Bayesian optimisation) to suggest better parameters next. Similar to Optuna but native K8s — each trial is a full K8s pod with GPU support.</div>
+      <div class="callout blue" style="margin-top:10px"><strong>Katib vs Optuna:</strong> Optuna runs in a single process on your training machine. Katib runs each trial as a separate K8s pod — massively parallel. Use Katib when you have a K8s cluster and GPU budget. Use Optuna when you want simplicity.</div>
+    </div>
+    <div class="card full al" style="--al-color:#00B0FF">
+      <div class="lbl">Katib Experiment YAML</div>
+      <div class="code">apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  name: housing-hparam-search
+  namespace: kubeflow
+spec:
+  objective:
+    type: minimize
+    goal: 0.40
+    objectiveMetricName: val_rmse
+  algorithm:
+    algorithmName: bayesianoptimization  <span class="cm"># or random, grid, cmaes</span>
+  parallelTrialCount: 4       <span class="cm"># 4 pods in parallel</span>
+  maxTrialCount: 50
+  maxFailedTrialCount: 5
+  parameters:
+    - name: n_estimators
+      parameterType: int
+      feasibleSpace: {min: "50", max: "500"}
+    - name: max_depth
+      parameterType: int
+      feasibleSpace: {min: "3", max: "20"}
+    - name: learning_rate
+      parameterType: double
+      feasibleSpace: {min: "0.01", max: "0.3"}
+  trialTemplate:
+    trialSpec:
+      apiVersion: batch/v1
+      kind: Job
+      spec:
+        template:
+          spec:
+            containers:
+              - name: train
+                image: ghcr.io/koyilada-rishi/mlops-train:latest
+                command:
+                  - python
+                  - src/train.py
+                  - --n_estimators=${trialParameters.n_estimators}
+                  - --max_depth=${trialParameters.max_depth}</div>
+    </div>
+  </div>
+</div>
+
+<!-- AIRFLOW vs KUBEFLOW -->
+<div class="section">
+  <div class="section-title">Airflow vs Kubeflow Pipelines — full comparison</div>
+  <div class="card full">
+    <table class="mini-t">
+      <tr><td>Primary use case</td><td><strong>Airflow:</strong> General data engineering + ML. Complex multi-system workflows (DB → Spark → S3 → ML → Slack).<br><strong>KFP:</strong> Pure ML pipelines. Components are always containers. Tightly coupled to K8s.</td></tr>
+      <tr><td>Step definition</td><td><strong>Airflow:</strong> Python function or any Operator (Python, Bash, Spark, K8s, HTTP, email...).<br><strong>KFP:</strong> Always a Docker container. @component or ContainerSpec. No non-container steps.</td></tr>
+      <tr><td>Data passing</td><td><strong>Airflow:</strong> XCom for small values. MinIO paths for large data. No automatic lineage.<br><strong>KFP:</strong> Typed artifacts (Dataset, Model, Metrics) with automatic MLMD lineage tracking.</td></tr>
+      <tr><td>Lineage tracking</td><td><strong>Airflow:</strong> Manual (log to MLflow yourself).<br><strong>KFP:</strong> Automatic via MLMD store — every artifact linked to every run that produced or consumed it.</td></tr>
+      <tr><td>Hyperparameter tuning</td><td><strong>Airflow:</strong> Integrate Optuna or Hyperopt yourself within a task.<br><strong>KFP:</strong> Katib built-in — native parallel K8s tuning jobs.</td></tr>
+      <tr><td>UI quality</td><td><strong>Airflow:</strong> Strong — DAG graph, Gantt chart, task logs, run history.<br><strong>KFP:</strong> Strong for ML — pipeline graphs, artifact visualisation, Jupyter notebooks inline.</td></tr>
+      <tr><td>Scheduling</td><td><strong>Airflow:</strong> Excellent — cron, external triggers, sensors, complex schedule_interval.<br><strong>KFP:</strong> Basic recurring runs. Airflow often manages KFP trigger timing from outside.</td></tr>
+      <tr><td>Setup complexity</td><td><strong>Airflow:</strong> Moderate — Helm chart, Postgres, S3 for logs, Redis for Celery.<br><strong>KFP:</strong> High — Argo Workflows, MLMD, MySQL, MinIO, Katib all on K8s.</td></tr>
+      <tr><td>Who uses what</td><td><strong>Airflow:</strong> Flipkart, Walmart, Swiggy for data pipelines.<br><strong>KFP:</strong> Google AI Platform, ML teams wanting an end-to-end ML-native platform.</td></tr>
+      <tr><td>Best combined use</td><td>Airflow schedules KFP runs. Airflow handles ingestion (ETL, sensors, alerts) and then calls KFP when data is ready for ML processing. Each tool does what it's best at.</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- KUBEFLOW IN HOME LAB -->
+<div class="section">
+  <div class="section-title">KFP on K3s — setup</div>
+  <div class="card full">
+    <div class="code"><span class="cm"># Install KFP standalone (lighter than full Kubeflow)</span>
+kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=2.2.0"
+kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/platform-agnostic-pns?ref=2.2.0"
+
+<span class="cm"># Port-forward KFP UI (or use NodePort)</span>
+kubectl port-forward svc/ml-pipeline-ui 8080:80 -n kubeflow
+
+<span class="cm"># Access at http://192.168.1.15:8080</span>
+
+<span class="cm"># Submit a pipeline run via CLI</span>
+pip install kfp
+kfp run create --pipeline-name "housing" --run-name "run-001" \
+  --pipeline-package-path pipeline.yaml</div>
+    <div class="callout amber" style="margin-top:10px"><strong>Note:</strong> Full Kubeflow needs 16GB+ RAM. KFP standalone needs ~6GB. On your Proxmox home lab, allocate at least 8GB to the K3s VM running KFP. MLflow + MinIO + KFP + Prometheus together need ~10GB total.</div>
+  </div>
+</div>
+
+</div>
+
+<div class="page-nav">
+  <a href="08-airflow.html" class="page-nav-btn">← Airflow</a>
+  <span style="font-size:12px;color:var(--t3)">09 — Kubeflow</span>
+  <a href="10-tools.html" class="page-nav-btn">Tools Deep Dive →</a>
+</div>
+</body>
+</html>
