@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Training-Serving Skew in MLOps</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f4f0;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-border-tertiary: rgba(0,0,0,0.10);
+    --color-border-secondary: rgba(0,0,0,0.18);
+    --color-border-primary: rgba(0,0,0,0.30);
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1e1e1c;
+      --color-background-secondary: #2a2a28;
+      --color-text-primary: #e8e6de;
+      --color-text-secondary: #a8a6a0;
+      --color-text-tertiary: #6a6a64;
+      --color-border-tertiary: rgba(255,255,255,0.10);
+      --color-border-secondary: rgba(255,255,255,0.18);
+      --color-border-primary: rgba(255,255,255,0.30);
+    }
+    .code { background: #111110 !important; color: #a8a6a0 !important; border-color: rgba(255,255,255,0.12) !important; }
+    .warn-box { background: #3a1a1a !important; color: #F7C1C1 !important; border-color: #E24B4A !important; }
+    .good-box { background: #1a2e0a !important; color: #C0DD97 !important; border-color: #639922 !important; }
+    .info-box { background: #0c2a45 !important; color: #B5D4F4 !important; border-color: #378ADD !important; }
+    .pill-red    { background: #791F1F !important; color: #F7C1C1 !important; }
+    .pill-green  { background: #27500A !important; color: #C0DD97 !important; }
+    .pill-amber  { background: #633806 !important; color: #FAC775 !important; }
+    .pill-blue   { background: #0C447C !important; color: #B5D4F4 !important; }
+    .vs-col.bad  { border-top-color: #E24B4A !important; }
+    .vs-col.good { border-top-color: #1D9E75 !important; }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    padding: 28px 32px 56px;
+    max-width: 980px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .page-title { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .page-sub   { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 24px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 0;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    border: 0.5px solid var(--color-border-tertiary);
+    margin-bottom: 24px;
+  }
+  .tab {
+    flex: 1; padding: 10px 6px;
+    border: none; background: var(--color-background-secondary);
+    cursor: pointer; font-family: var(--font-sans);
+    font-size: 12px; font-weight: 500;
+    color: var(--color-text-secondary);
+    border-right: 0.5px solid var(--color-border-tertiary);
+    transition: all .15s; line-height: 1.3;
+  }
+  .tab:last-child { border-right: none; }
+  .tab.on { background: var(--color-background-primary); color: var(--color-text-primary); }
+  .tab:hover:not(.on) { background: var(--color-background-primary); }
+
+  .pane { display: none; }
+  .pane.on { display: block; }
+
+  /* Grids */
+  .row2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-bottom: 14px; }
+  .row3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 640px) {
+    .row2, .row3 { grid-template-columns: 1fr; }
+    .tabs { flex-wrap: wrap; }
+    .tab { flex: none; width: 50%; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 13px 15px;
+  }
+  .lbl {
+    font-size: 11px; font-weight: 500; color: var(--color-text-tertiary);
+    text-transform: uppercase; letter-spacing: .04em; margin-bottom: 7px;
+  }
+  .val { font-size: 13px; color: var(--color-text-primary); line-height: 1.65; }
+
+  .al { border-left: 2.5px solid; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .al.red    { border-color: #E24B4A; }
+  .al.amber  { border-color: #EF9F27; }
+  .al.green  { border-color: #1D9E75; }
+  .al.blue   { border-color: #378ADD; }
+  .al.purple { border-color: #7F77DD; }
+
+  /* Pills */
+  .pill { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 20px; margin: 2px 2px 0 0; }
+  .pill-red    { background: #FCEBEB; color: #791F1F; }
+  .pill-green  { background: #EAF3DE; color: #27500A; }
+  .pill-amber  { background: #FAEEDA; color: #633806; }
+  .pill-blue   { background: #E6F1FB; color: #0C447C; }
+
+  /* VS columns */
+  .vs-row { display: flex; gap: 12px; margin-bottom: 14px; }
+  .vs-col { flex: 1; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 13px 15px; }
+  .vs-col.bad  { border-top: 2px solid #E24B4A; }
+  .vs-col.good { border-top: 2px solid #1D9E75; }
+  @media (max-width: 640px) { .vs-row { flex-direction: column; } }
+
+  /* Callout boxes */
+  .warn-box { background: #FCEBEB; border: 0.5px solid #E24B4A; border-radius: var(--border-radius-md); padding: 11px 13px; font-size: 13px; color: #791F1F; line-height: 1.65; margin: 10px 0; }
+  .good-box { background: #EAF3DE; border: 0.5px solid #639922; border-radius: var(--border-radius-md); padding: 11px 13px; font-size: 13px; color: #27500A; line-height: 1.65; margin: 10px 0; }
+  .info-box { background: #E6F1FB; border: 0.5px solid #378ADD; border-radius: var(--border-radius-md); padding: 11px 13px; font-size: 13px; color: #0C447C; line-height: 1.65; margin: 10px 0; }
+
+  /* Code blocks */
+  .code {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 11px 13px;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--color-text-secondary);
+    line-height: 1.7; margin-top: 9px;
+    white-space: pre; overflow-x: auto;
+    tab-size: 2;
+  }
+  .err  { color: #E24B4A; }
+  .ok   { color: #1D9E75; }
+  .cm   { color: var(--color-text-tertiary); }
+  .kw   { color: #7F77DD; }
+  .str  { color: #EF9F27; }
+
+  /* Step headers */
+  .step-hdr { font-size: 18px; font-weight: 500; margin: 0 0 5px; }
+  .step-sub { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 16px; line-height: 1.65; }
+
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 12px 0; }
+
+  /* Simulator */
+  .sim-label { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .big-num   { font-size: 26px; font-weight: 500; }
+  .gap-bar-wrap { background: var(--color-border-tertiary); border-radius: 4px; height: 8px; margin-top: 8px; overflow: hidden; }
+  .gap-bar { height: 8px; border-radius: 4px; background: #E24B4A; transition: width .3s; }
+
+  /* Nav footer */
+  .nav-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 22px; padding-top: 14px;
+    border-top: 0.5px solid var(--color-border-tertiary);
+  }
+  .nav-btn {
+    padding: 7px 18px; font-size: 12px; font-weight: 500;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: 20px; background: var(--color-background-secondary);
+    color: var(--color-text-secondary); cursor: pointer;
+    font-family: var(--font-sans); transition: all .15s;
+  }
+  .nav-btn:hover { background: var(--color-background-primary); color: var(--color-text-primary); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .nav-pos { font-size: 12px; color: var(--color-text-tertiary); }
+
+  input[type=range] { width: 100%; cursor: pointer; accent-color: #1D9E75; }
+</style>
+</head>
+<body>
+
+<p class="page-title">Training-serving skew in MLOps</p>
+<p class="page-sub">The silent model killer — what it is, why it happens, how to prevent it with sklearn Pipelines, and a live simulator showing the prediction gap.</p>
+
+<div class="tabs">
+  <button class="tab on" onclick="go(0,this)">The problem</button>
+  <button class="tab" onclick="go(1,this)">Root causes</button>
+  <button class="tab" onclick="go(2,this)">The fix</button>
+  <button class="tab" onclick="go(3,this)">Live simulator</button>
+  <button class="tab" onclick="go(4,this)">Full code</button>
+</div>
+
+<!-- PANE 0: THE PROBLEM -->
+<div class="pane on" id="p0">
+  <h2 class="step-hdr">The California Housing scenario</h2>
+  <p class="step-sub">You train a RandomForestRegressor to predict house prices. Notebooks show RMSE of $18,400 on the test set. You deploy. Within a week, users are complaining predictions are wildly off. You haven't changed the model or the weights. What happened?</p>
+
+  <div class="vs-row">
+    <div class="vs-col bad">
+      <div class="lbl" style="color:#A32D2D">Training code (notebook)</div>
+      <div class="code"><span class="cm"># Imputer fitted on the ENTIRE dataset</span>
+imputer = SimpleImputer(strategy=<span class="str">"median"</span>)
+imputer.fit(X)  <span class="cm"># ← ALL 20,000 rows</span>
+
+<span class="cm"># median of MedInc across full dataset</span>
+<span class="cm"># result: 3.87  (stable, representative)</span>
+
+X_train_clean = imputer.transform(X_train)
+scaler = StandardScaler()
+scaler.fit(X_train_clean)
+X_train_scaled = scaler.transform(X_train_clean)
+
+model.fit(X_train_scaled, y_train)</div>
+    </div>
+    <div class="vs-col bad">
+      <div class="lbl" style="color:#A32D2D">Serving code (FastAPI endpoint)</div>
+      <div class="code"><span class="cm"># Someone re-wrote transforms at deploy time</span>
+imputer2 = SimpleImputer(strategy=<span class="str">"mean"</span>)
+imputer2.fit(recent_requests[-100:])
+<span class="cm"># mean of last 100 live requests only</span>
+<span class="cm"># result: 2.10  (completely different!)</span>
+
+X_new_clean = imputer2.transform(X_new)
+scaler2 = StandardScaler()
+scaler2.fit(X_new_clean)  <span class="cm"># ← wrong stats!</span>
+X_new_scaled = scaler2.transform(X_new_clean)
+
+prediction = model.predict(X_new_scaled)</div>
+    </div>
+  </div>
+
+  <div class="warn-box">Two different imputers. Two different scalers. The model was trained on one numerical universe and is asked to predict in a completely different one. Predictions are wrong — and the error is completely silent. No exception is raised. No alarm fires. The model returns plausible-looking wrong numbers confidently.</div>
+
+  <div class="row3">
+    <div class="card al red">
+      <div class="lbl">What actually differs</div>
+      <div class="val">Imputation fill value: <strong>3.87</strong> at training vs <strong>2.10</strong> at serving. A null MedInc becomes a completely different number depending on which code path runs.</div>
+    </div>
+    <div class="card al red">
+      <div class="lbl">What the model "sees"</div>
+      <div class="val">At training: null → 3.87 → scaled to <strong>+0.30σ</strong>.<br>At serving: null → 2.10 → scaled to <strong>−1.10σ</strong>.<br><br>The model interprets the same missing value as two completely different signals.</div>
+    </div>
+    <div class="card al amber">
+      <div class="lbl">Why it's silent</div>
+      <div class="val">Python raises no error. The model outputs a number. The number looks plausible. Without ground-truth labels from production you won't catch it for days or weeks — until a user complains.</div>
+    </div>
+  </div>
+
+  <div class="info-box"><strong>SRE analogy:</strong> Skew is config drift between environments. Imagine staging has a different nginx.conf than production — everything looks fine in staging, production behaves differently. Skew is the same thing but for data transforms: training and serving have diverged quietly.</div>
+</div>
+
+<!-- PANE 1: ROOT CAUSES -->
+<div class="pane" id="p1">
+  <h2 class="step-hdr">The 5 root causes of train-serve skew</h2>
+  <p class="step-sub">Skew isn't just imputation. It's any mismatch between the transform applied at training time vs. serving time. These are the five ways it appears in real production systems.</p>
+
+  <div class="row2">
+    <div class="card al red">
+      <div class="lbl">1. Imputer / scaler fitted on wrong data</div>
+      <div class="val">Most common. Training fits imputer on full dataset or training-only data. Serving refits on live requests, uses hardcoded constants, or uses a fresh sklearn object. The statistics differ silently.</div>
+      <div style="margin-top:8px"><span class="pill pill-red">most common</span></div>
+    </div>
+    <div class="card al red">
+      <div class="lbl">2. Feature computation diverges</div>
+      <div class="val">Training: <code>df['age'] = 2024 - df['year_built']</code>. Serving: someone writes <code>age = current_year - year_built</code> but uses the wrong timezone, getting 2023. Every prediction is off by exactly one year's effect — forever.</div>
+      <div style="margin-top:8px"><span class="pill pill-red">subtle, hard to catch</span></div>
+    </div>
+    <div class="card al amber">
+      <div class="lbl">3. Category encoding column order</div>
+      <div class="val">Training OHE produces columns [city_Mumbai, city_Delhi, city_Chennai]. Serving builds the same list from a config file someone updated — now the order is different. Model reads wrong features for each city.</div>
+      <div style="margin-top:8px"><span class="pill pill-amber">ordering matters</span></div>
+    </div>
+    <div class="card al amber">
+      <div class="lbl">4. Processing split across services</div>
+      <div class="val">Feature engineering runs in Service A (Python). Model inference runs in Service B (Java or Go). Floating-point rounding, library version differences, and unit assumptions all differ silently between runtimes.</div>
+      <div style="margin-top:8px"><span class="pill pill-amber">cross-language risk</span></div>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="card al amber">
+      <div class="lbl">5. Log-transform applied inconsistently</div>
+      <div class="val">Training: <code>np.log1p(price)</code>. Serving: someone writes <code>np.log(price)</code>. Crashes on zero, and gives slightly different values for all other inputs. The difference is tiny for large values, massive for small ones — and prediction error is non-uniform.</div>
+      <div style="margin-top:8px"><span class="pill pill-amber">log/exp is tricky</span></div>
+    </div>
+    <div class="card al green">
+      <div class="lbl">Detection: shadow mode testing</div>
+      <div class="val">Run old and new serving paths in parallel on the same live traffic. Compare predictions. If p99 divergence &gt; 1%, you have skew. This is the only reliable way to catch it before users notice.</div>
+      <div style="margin-top:8px"><span class="pill pill-green">prevention technique</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:4px">
+    <div class="lbl">Skew detection checklist</div>
+    <table style="width:100%;font-size:13px;border-collapse:collapse;margin-top:4px">
+      <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+        <td style="padding:6px 8px;font-weight:500;color:var(--color-text-primary);width:30%">Check</td>
+        <td style="padding:6px 8px;color:var(--color-text-secondary)">How to verify</td>
+      </tr>
+      <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+        <td style="padding:6px 8px;font-weight:500">Imputer statistics</td>
+        <td style="padding:6px 8px;color:var(--color-text-secondary)">Log <code>imputer.statistics_</code> to MLflow at training. Compare with what's in the deployed artifact.</td>
+      </tr>
+      <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+        <td style="padding:6px 8px;font-weight:500">Scaler mean/std</td>
+        <td style="padding:6px 8px;color:var(--color-text-secondary)">Log <code>scaler.mean_</code> and <code>scaler.scale_</code>. Serving must use the exact same values.</td>
+      </tr>
+      <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+        <td style="padding:6px 8px;font-weight:500">Feature column order</td>
+        <td style="padding:6px 8px;color:var(--color-text-secondary)">Log <code>list(X_train.columns)</code> as a JSON artifact. Serving validates input matches this list in this order.</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;font-weight:500">Prediction distribution</td>
+        <td style="padding:6px 8px;color:var(--color-text-secondary)">Evidently monitors output distribution in production. Alert if it shifts from the training-time reference distribution.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- PANE 2: THE FIX -->
+<div class="pane" id="p2">
+  <h2 class="step-hdr">The fix: one Pipeline, one artifact</h2>
+  <p class="step-sub">The sklearn Pipeline bundles every transform step with the model into a single serialisable object. Train it once. Save it once. Load the exact same object at serve time. There is no second imputer, no second scaler — just one call to <code>pipe.predict()</code>.</p>
+
+  <div class="vs-row">
+    <div class="vs-col good">
+      <div class="lbl" style="color:#27500A">Training (correct)</div>
+      <div class="code"><span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.impute <span class="kw">import</span> SimpleImputer
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestRegressor
+<span class="kw">import</span> mlflow
+
+pipe = Pipeline([
+  (<span class="str">"impute"</span>, SimpleImputer(strategy=<span class="str">"median"</span>)),
+  (<span class="str">"scale"</span>,  StandardScaler()),
+  (<span class="str">"model"</span>,  RandomForestRegressor(
+                n_estimators=100,
+                random_state=42)),
+])
+
+<span class="cm"># Fit ONLY on training data</span>
+pipe.fit(X_train, y_train)
+
+<span class="cm"># Log the WHOLE pipeline — imputer +</span>
+<span class="cm"># scaler stats are frozen inside the object</span>
+<span class="kw">with</span> mlflow.start_run():
+  mlflow.sklearn.log_model(pipe, <span class="str">"model"</span>,
+    registered_model_name=<span class="str">"california-housing"</span>)
+  mlflow.log_metric(<span class="str">"val_rmse"</span>, val_rmse)</div>
+    </div>
+    <div class="vs-col good">
+      <div class="lbl" style="color:#27500A">Serving (correct)</div>
+      <div class="code"><span class="kw">import</span> mlflow
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> typing <span class="kw">import</span> Optional
+
+app = FastAPI()
+
+<span class="cm"># Load the SAME pipeline object</span>
+<span class="cm"># It already contains fitted imputer + scaler</span>
+<span class="cm"># No re-fitting. No separate transform code.</span>
+pipe = mlflow.sklearn.load_model(
+  <span class="str">"models:/california-housing/Production"</span>
+)
+
+<span class="kw">class</span> House(BaseModel):
+  MedInc:     Optional[float] = None
+  HouseAge:   Optional[float] = None
+  AveRooms:   Optional[float] = None
+
+@app.post(<span class="str">"/predict"</span>)
+<span class="kw">def</span> predict(h: House):
+  row = [[h.MedInc, h.HouseAge, h.AveRooms]]
+  <span class="cm"># impute → scale → predict in one call</span>
+  <span class="cm"># using training-time statistics — always</span>
+  price = pipe.predict(row)[0] * 100_000
+  <span class="kw">return</span> {<span class="str">"price_usd"</span>: round(price, 2)}</div>
+    </div>
+  </div>
+
+  <div class="good-box">The <code>SimpleImputer</code> inside the pipeline has <code>statistics_</code> frozen to what was computed on X_train. When <code>pipe.predict()</code> runs at serving time it uses those exact numbers — median 3.87, etc. — not a recomputed version. This is guaranteed by sklearn's design. The serialised object carries the learned statistics with it.</div>
+
+  <div class="row3">
+    <div class="card al green">
+      <div class="lbl">What gets frozen in the pkl</div>
+      <div class="val">
+        <code>SimpleImputer.statistics_</code><br>
+        <span style="color:var(--color-text-secondary);font-size:12px">Median per column from X_train</span><br><br>
+        <code>StandardScaler.mean_</code><br>
+        <span style="color:var(--color-text-secondary);font-size:12px">Mean per column from imputed X_train</span><br><br>
+        <code>StandardScaler.scale_</code><br>
+        <span style="color:var(--color-text-secondary);font-size:12px">Std dev per column from imputed X_train</span>
+      </div>
+    </div>
+    <div class="card al blue">
+      <div class="lbl">ColumnTransformer for mixed types</div>
+      <div class="code"><span class="kw">from</span> sklearn.compose <span class="kw">import</span> ColumnTransformer
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> OneHotEncoder
+
+num = [<span class="str">"MedInc"</span>, <span class="str">"HouseAge"</span>]
+cat = [<span class="str">"OceanProximity"</span>]
+
+pre = ColumnTransformer([
+  (<span class="str">"num"</span>, Pipeline([
+    (<span class="str">"imp"</span>, SimpleImputer()),
+    (<span class="str">"sc"</span>,  StandardScaler()),
+  ]), num),
+  (<span class="str">"cat"</span>, OneHotEncoder(
+    handle_unknown=<span class="str">"ignore"</span>
+  ), cat),
+])
+
+pipe = Pipeline([
+  (<span class="str">"pre"</span>,   pre),
+  (<span class="str">"model"</span>, RandomForestRegressor()),
+])</div>
+    </div>
+    <div class="card al purple">
+      <div class="lbl">What to log alongside the model</div>
+      <div class="val">
+        <span class="pill pill-blue">pipeline.pkl (full object)</span>
+        <span class="pill pill-blue">feature_names.json</span>
+        <span class="pill pill-blue">input_schema.json</span>
+        <span class="pill pill-blue">imputer_statistics.json</span>
+        <span class="pill pill-blue">scaler_mean_std.json</span>
+        <br><br>
+        <span style="font-size:12px;color:var(--color-text-secondary)">If anyone asks "what fill value was used for MedInc?" you have the answer without re-running training. This satisfies data lineage requirements for production audits.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANE 3: LIVE SIMULATOR -->
+<div class="pane" id="p3">
+  <h2 class="step-hdr">Live skew simulator</h2>
+  <p class="step-sub">Adjust the inputs below. The simulator shows what happens when MedInc is missing (null) — one path uses the frozen training median (correct), the other re-computes from a small live sample (skewed). Watch the prediction gap grow as the live sample drifts further from training data.</p>
+
+  <div class="row3" style="margin-bottom:16px">
+    <div class="card">
+      <div class="sim-label">HouseAge (years)</div>
+      <input type="range" id="age" min="1" max="52" value="28" step="1" oninput="sim()">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-top:5px" id="age-out">28 yrs</div>
+    </div>
+    <div class="card">
+      <div class="sim-label">AveRooms</div>
+      <input type="range" id="rooms" min="2" max="10" value="5" step="1" oninput="sim()">
+      <div style="font-size:13px;font-weight:500;color:var(--color-text-primary);margin-top:5px" id="rooms-out">5 rooms</div>
+    </div>
+    <div class="card">
+      <div class="sim-label">Live sample drift (how different live traffic is from training)</div>
+      <input type="range" id="drift" min="0" max="100" value="30" step="1" oninput="sim()">
+      <div style="font-size:13px;color:var(--color-text-secondary);margin-top:5px" id="drift-out">Live sample MedInc mean: 2.96</div>
+    </div>
+  </div>
+
+  <div style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--color-text-secondary)">
+    Input row: MedInc = <strong style="color:var(--color-text-primary)">null</strong> (missing),
+    HouseAge = <span id="info-age" style="color:var(--color-text-primary);font-weight:500">28</span>,
+    AveRooms = <span id="info-rooms" style="color:var(--color-text-primary);font-weight:500">5</span>
+    &nbsp;|&nbsp; Training median MedInc = <strong style="color:#1D9E75">3.87</strong> (frozen in pipeline — never changes)
+  </div>
+
+  <div class="vs-row">
+    <div class="vs-col bad">
+      <div class="lbl" style="color:#A32D2D">Skewed serving path</div>
+      <div class="sim-label" style="margin-top:6px">MedInc filled with live mean: <span id="live-fill" style="font-weight:500;color:#E24B4A">2.96</span></div>
+      <div class="sim-label">Scaled MedInc: <span id="skew-scaled" style="font-weight:500;color:#E24B4A">−0.48σ</span></div>
+      <div class="divider"></div>
+      <div class="sim-label">Predicted price</div>
+      <div class="big-num" id="skew-pred" style="color:#E24B4A">$195,600</div>
+    </div>
+    <div class="vs-col good">
+      <div class="lbl" style="color:#27500A">Pipeline serving path (correct)</div>
+      <div class="sim-label" style="margin-top:6px">MedInc filled with training median: <strong style="color:#1D9E75">3.87</strong></div>
+      <div class="sim-label">Scaled MedInc: <span id="good-scaled" style="font-weight:500;color:#1D9E75">−0.13σ</span></div>
+      <div class="divider"></div>
+      <div class="sim-label">Predicted price</div>
+      <div class="big-num" id="good-pred" style="color:#1D9E75">$209,200</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:0">
+    <div class="lbl">Prediction gap (error caused entirely by skew — same model, same input)</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px">
+      <div class="big-num" id="gap-num" style="color:#E24B4A">$13,600</div>
+      <div style="font-size:14px;color:var(--color-text-secondary)" id="gap-pct">(6.5% off)</div>
+    </div>
+    <div class="gap-bar-wrap"><div class="gap-bar" id="gap-bar" style="width:16%"></div></div>
+    <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:6px">Bar represents gap as % of correct price. Scale: 0–40%. Drag "live sample drift" to the right to see the gap grow.</div>
+  </div>
+
+  <div class="warn-box" style="margin-top:14px">At 100% drift (live requests look nothing like training data), you're looking at 20–30%+ error on every single prediction — completely silently. The model returns a number. The number looks plausible. The customer is being quoted the wrong price for their house.</div>
+</div>
+
+<!-- PANE 4: FULL CODE -->
+<div class="pane" id="p4">
+  <h2 class="step-hdr">Production-ready full implementation</h2>
+  <p class="step-sub">Complete end-to-end: training script with MLflow logging, FastAPI serving endpoint, and a pytest suite that catches skew in CI before it reaches production.</p>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="lbl">train.py — full pipeline + MLflow logging</div>
+    <div class="code"><span class="kw">import</span> pandas <span class="kw">as</span> pd, numpy <span class="kw">as</span> np, mlflow, json, subprocess
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> fetch_california_housing
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.impute <span class="kw">import</span> SimpleImputer
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestRegressor
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> mean_squared_error
+
+data = fetch_california_housing(as_frame=True)
+X, y = data.data, data.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+pipe = Pipeline([
+    (<span class="str">"impute"</span>, SimpleImputer(strategy=<span class="str">"median"</span>)),
+    (<span class="str">"scale"</span>,  StandardScaler()),
+    (<span class="str">"model"</span>,  RandomForestRegressor(
+                    n_estimators=100, random_state=42, n_jobs=-1)),
+])
+
+mlflow.set_tracking_uri(<span class="str">"http://192.168.1.15:30500"</span>)
+mlflow.set_experiment(<span class="str">"california-housing"</span>)
+
+<span class="kw">with</span> mlflow.start_run() <span class="kw">as</span> run:
+    pipe.fit(X_train, y_train)
+
+    rmse = mean_squared_error(y_test, pipe.predict(X_test)) ** 0.5
+    mlflow.log_metric(<span class="str">"test_rmse"</span>, round(rmse, 4))
+    mlflow.log_param(<span class="str">"n_estimators"</span>, 100)
+    mlflow.log_param(<span class="str">"n_train_rows"</span>, len(X_train))
+    mlflow.log_param(<span class="str">"dvc_hash"</span>, subprocess.check_output(
+        [<span class="str">"git"</span>, <span class="str">"rev-parse"</span>, <span class="str">"HEAD"</span>]).decode().strip())
+
+    <span class="cm"># Log the WHOLE pipeline — imputer stats frozen inside</span>
+    mlflow.sklearn.log_model(pipe, <span class="str">"model"</span>,
+        registered_model_name=<span class="str">"california-housing"</span>)
+
+    <span class="cm"># Audit artifacts: imputer and scaler statistics</span>
+    imp_stats = dict(zip(
+        X_train.columns.tolist(),
+        pipe.named_steps[<span class="str">"impute"</span>].statistics_.tolist()
+    ))
+    mlflow.log_dict(imp_stats, <span class="str">"imputer_statistics.json"</span>)
+
+    scaler_stats = {
+        <span class="str">"mean"</span>: dict(zip(X_train.columns.tolist(),
+            pipe.named_steps[<span class="str">"scale"</span>].mean_.tolist())),
+        <span class="str">"std"</span>:  dict(zip(X_train.columns.tolist(),
+            pipe.named_steps[<span class="str">"scale"</span>].scale_.tolist())),
+    }
+    mlflow.log_dict(scaler_stats, <span class="str">"scaler_statistics.json"</span>)
+
+    <span class="cm"># Feature column order — serving must match this exactly</span>
+    mlflow.log_dict(
+        {<span class="str">"columns"</span>: X_train.columns.tolist()},
+        <span class="str">"feature_names.json"</span>
+    )
+
+    print(f<span class="str">"Run {run.info.run_id} | RMSE: {rmse:.4f}"</span>)</div>
+  </div>
+
+  <div class="row2">
+    <div class="card" style="margin-bottom:12px">
+      <div class="lbl">serve.py — FastAPI, zero re-fitting</div>
+      <div class="code"><span class="kw">import</span> mlflow, numpy <span class="kw">as</span> np
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, HTTPException
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> typing <span class="kw">import</span> Optional
+<span class="kw">import</span> time, uuid
+
+app = FastAPI()
+
+mlflow.set_tracking_uri(<span class="str">"http://192.168.1.15:30500"</span>)
+pipe = mlflow.sklearn.load_model(
+    <span class="str">"models:/california-housing/Production"</span>
+)
+FEATURES = [<span class="str">"MedInc"</span>, <span class="str">"HouseAge"</span>, <span class="str">"AveRooms"</span>,
+            <span class="str">"AveBedrms"</span>, <span class="str">"Population"</span>, <span class="str">"AveOccup"</span>,
+            <span class="str">"Latitude"</span>, <span class="str">"Longitude"</span>]
+
+<span class="kw">class</span> House(BaseModel):
+    MedInc:     Optional[float] = None
+    HouseAge:   Optional[float] = None
+    AveRooms:   Optional[float] = None
+    AveBedrms:  Optional[float] = None
+    Population: Optional[float] = None
+    AveOccup:   Optional[float] = None
+    Latitude:   Optional[float] = None
+    Longitude:  Optional[float] = None
+
+@app.post(<span class="str">"/predict"</span>)
+<span class="kw">def</span> predict(h: House):
+    t0  = time.time()
+    rid = str(uuid.uuid4())
+
+    <span class="cm"># Build row in the exact column order the</span>
+    <span class="cm"># pipeline was trained on — None becomes np.nan</span>
+    row = [[getattr(h, f) for f in FEATURES]]
+
+    <span class="cm"># One call: impute → scale → predict</span>
+    <span class="cm"># Using training-time statistics. Always.</span>
+    price = float(pipe.predict(row)[0]) * 100_000
+
+    <span class="kw">return</span> {
+        <span class="str">"request_id"</span>:    rid,
+        <span class="str">"price_usd"</span>:     round(price, 2),
+        <span class="str">"model_version"</span>: <span class="str">"Production"</span>,
+        <span class="str">"latency_ms"</span>:    round((time.time()-t0)*1000, 1),
+    }</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="lbl">test_skew.py — CI gate that catches skew before deployment</div>
+      <div class="code"><span class="cm">"""
+Run via:  pytest tests/test_skew.py -v
+Add to GitHub Actions CI workflow.
+Catches accidental re-fitting and proves
+transforms are deterministic and stateless.
+"""</span>
+<span class="kw">import</span> mlflow, numpy <span class="kw">as</span> np, pytest
+
+@pytest.fixture(scope=<span class="str">"module"</span>)
+<span class="kw">def</span> pipe():
+    mlflow.set_tracking_uri(
+        <span class="str">"http://192.168.1.15:30500"</span>)
+    <span class="kw">return</span> mlflow.sklearn.load_model(
+        <span class="str">"models:/california-housing/Production"</span>)
+
+<span class="kw">def</span> test_pipeline_deterministic(pipe):
+    <span class="cm">"""Same input must always give same output."""</span>
+    row = [[None, 28.0, 5.2, 1.1,
+            800, 3.0, 37.5, -122.2]]
+    p1 = pipe.predict(row)
+    p2 = pipe.predict(row)
+    np.testing.assert_array_equal(p1, p2,
+        err_msg=<span class="str">"Pipeline is not deterministic!"</span>)
+
+<span class="kw">def</span> test_imputer_not_refit_on_predict(pipe):
+    <span class="cm">"""statistics_ must never change after fit()."""</span>
+    imp = pipe.named_steps[<span class="str">"impute"</span>]
+    stats_before = imp.statistics_.copy()
+    pipe.predict([[None] * 8])
+    np.testing.assert_array_equal(
+        imp.statistics_, stats_before,
+        err_msg=<span class="str">"Imputer was refit during predict!"</span>)
+
+<span class="kw">def</span> test_null_handling_consistent(pipe):
+    <span class="cm">"""null input must equal median-filled input."""</span>
+    imp = pipe.named_steps[<span class="str">"impute"</span>]
+    med = imp.statistics_[0]  <span class="cm"># MedInc median</span>
+    row_null   = [[None, 28.0, 5.2, 1.1,
+                   800, 3.0, 37.5, -122.2]]
+    row_filled = [[med,  28.0, 5.2, 1.1,
+                   800, 3.0, 37.5, -122.2]]
+    np.testing.assert_allclose(
+        pipe.predict(row_null),
+        pipe.predict(row_filled),
+        rtol=1e-5,
+        err_msg=<span class="str">"Null fill is inconsistent with median!"</span>)
+
+<span class="kw">def</span> test_scaler_stats_match_expected(pipe):
+    <span class="cm">"""Scaler mean must match logged training stats."""</span>
+    <span class="kw">import</span> json
+    <span class="cm"># Load from the audit artifact saved at training</span>
+    <span class="cm"># (download from MLflow before running this test)</span>
+    <span class="kw">with</span> open(<span class="str">"artifacts/scaler_statistics.json"</span>) <span class="kw">as</span> f:
+        expected = json.load(f)
+    sc = pipe.named_steps[<span class="str">"scale"</span>]
+    np.testing.assert_allclose(
+        sc.mean_[0],
+        expected[<span class="str">"mean"</span>][<span class="str">"MedInc"</span>],
+        rtol=1e-4,
+        err_msg=<span class="str">"Scaler mean does not match training!"</span>)</div>
+    </div>
+  </div>
+
+  <div class="good-box">Add <code>pytest tests/test_skew.py</code> to your GitHub Actions CI on the <code>mlops-prep-nayak-main</code> branch. This proves to interviewers at Flipkart / Swiggy / Walmart that you think about production correctness, not just notebook accuracy — most candidates only test metrics. Testing that the pipeline's imputer statistics don't mutate during <code>predict()</code> is the kind of production thinking that stands out.</div>
+</div>
+
+<!-- Nav footer -->
+<div class="nav-footer">
+  <button class="nav-btn" id="btn-prev" onclick="nav(-1)" disabled>← Previous</button>
+  <span class="nav-pos" id="nav-pos">Section 1 of 5 — The problem</span>
+  <button class="nav-btn" id="btn-next" onclick="nav(1)">Next →</button>
+</div>
+
+<script>
+  var cur = 0;
+  var titles = ["The problem","Root causes","The fix","Live simulator","Full code"];
+  var btnEls = document.querySelectorAll('.tab');
+
+  function go(i, btn) {
+    document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
+    btnEls.forEach(function(b){ b.classList.remove('on'); });
+    document.getElementById('p'+i).classList.add('on');
+    if (btn) btn.classList.add('on');
+    else btnEls[i].classList.add('on');
+    cur = i;
+    document.getElementById('nav-pos').textContent = 'Section '+(i+1)+' of 5 — '+titles[i];
+    document.getElementById('btn-prev').disabled = (i === 0);
+    document.getElementById('btn-next').disabled = (i === 4);
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function nav(d) { var n = cur + d; if (n >= 0 && n <= 4) go(n, null); }
+
+  /* Simulator */
+  var TRAIN_MEDIAN = 3.87;
+  var TRAIN_MEAN   = 4.12;
+  var TRAIN_STD    = 1.90;
+
+  function approxPrice(medinc_scaled, age, rooms) {
+    var base = 200000;
+    base += medinc_scaled * 38000;
+    base += (age - 28) * 900;
+    base += (rooms - 5) * 7000;
+    return Math.max(60000, base);
+  }
+
+  function sim() {
+    var age   = parseInt(document.getElementById('age').value);
+    var rooms = parseInt(document.getElementById('rooms').value);
+    var drift = parseInt(document.getElementById('drift').value);
+
+    document.getElementById('age-out').textContent   = age + ' yrs';
+    document.getElementById('rooms-out').textContent = rooms + ' rooms';
+    document.getElementById('info-age').textContent   = age;
+    document.getElementById('info-rooms').textContent = rooms;
+
+    var live_fill = TRAIN_MEDIAN - (drift / 100) * 1.9;
+    live_fill = Math.max(1.0, live_fill);
+    document.getElementById('drift-out').textContent = 'Live sample MedInc mean: ' + live_fill.toFixed(2);
+    document.getElementById('live-fill').textContent = live_fill.toFixed(2);
+
+    var skew_scaled = (live_fill    - TRAIN_MEAN) / TRAIN_STD;
+    var good_scaled = (TRAIN_MEDIAN - TRAIN_MEAN) / TRAIN_STD;
+
+    function fmt_sigma(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + 'σ'; }
+    document.getElementById('skew-scaled').textContent = fmt_sigma(skew_scaled);
+    document.getElementById('good-scaled').textContent = fmt_sigma(good_scaled);
+
+    var p_skew = approxPrice(skew_scaled, age, rooms);
+    var p_good = approxPrice(good_scaled, age, rooms);
+
+    function fmt_price(v) { return '$' + (Math.round(v/100)*100).toLocaleString(); }
+    document.getElementById('skew-pred').textContent = fmt_price(p_skew);
+    document.getElementById('good-pred').textContent = fmt_price(p_good);
+
+    var gap = Math.abs(p_good - p_skew);
+    var pct = (gap / p_good * 100).toFixed(1);
+    document.getElementById('gap-num').textContent = fmt_price(gap);
+    document.getElementById('gap-pct').textContent = '(' + pct + '% off)';
+    var barW = Math.min(100, gap / p_good * 250);
+    document.getElementById('gap-bar').style.width = barW.toFixed(1) + '%';
+  }
+
+  go(0, null);
+  sim();
+</script>
+</body>
+</html>

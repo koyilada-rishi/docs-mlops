@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Data Lifecycle in MLOps</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f4f0;
+    --color-text-primary: #1a1a18;
+    --color-text-secondary: #5f5e5a;
+    --color-text-tertiary: #888780;
+    --color-border-tertiary: rgba(0,0,0,0.10);
+    --color-border-secondary: rgba(0,0,0,0.18);
+    --color-border-primary: rgba(0,0,0,0.30);
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background-primary: #1e1e1c;
+      --color-background-secondary: #2a2a28;
+      --color-text-primary: #e8e6de;
+      --color-text-secondary: #a8a6a0;
+      --color-text-tertiary: #6a6a64;
+      --color-border-tertiary: rgba(255,255,255,0.10);
+      --color-border-secondary: rgba(255,255,255,0.18);
+      --color-border-primary: rgba(255,255,255,0.30);
+    }
+    .tag-teal   { background: #085041 !important; color: #9FE1CB !important; }
+    .tag-blue   { background: #0C447C !important; color: #B5D4F4 !important; }
+    .tag-purple { background: #3C3489 !important; color: #CECBF6 !important; }
+    .tag-amber  { background: #633806 !important; color: #FAC775 !important; }
+    .tag-red    { background: #791F1F !important; color: #F7C1C1 !important; }
+    .tag-green  { background: #27500A !important; color: #C0DD97 !important; }
+    .tag-gray   { background: #2C2C2A !important; color: #D3D1C7 !important; }
+    .warn-box   { background: #3a2c10 !important; border-color: #EF9F27 !important; color: #FAC775 !important; }
+    .info-box   { background: #0c2a45 !important; border-color: #378ADD !important; color: #B5D4F4 !important; }
+    .good-box   { background: #1a2e0a !important; border-color: #639922 !important; color: #C0DD97 !important; }
+    .code-block { background: #111110 !important; color: #a8a6a0 !important; }
+    .flow-node  { background: #2a2a28 !important; }
+    .mini-table td { border-color: rgba(255,255,255,0.10) !important; }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-background-primary);
+    color: var(--color-text-primary);
+    padding: 28px 32px 48px;
+    max-width: 960px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .page-title { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 24px; }
+
+  /* Stage bar */
+  .stage-bar {
+    display: flex; align-items: stretch; gap: 0;
+    margin-bottom: 24px;
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .stage-btn {
+    flex: 1; padding: 10px 4px 8px;
+    border: none; background: var(--color-background-secondary);
+    cursor: pointer; font-family: var(--font-sans);
+    font-size: 11px; font-weight: 500;
+    color: var(--color-text-secondary);
+    border-right: 0.5px solid var(--color-border-tertiary);
+    transition: all .15s; line-height: 1.3;
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .stage-btn:last-child { border-right: none; }
+  .stage-btn.active { background: var(--color-background-primary); color: var(--color-text-primary); }
+  .stage-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border-secondary); transition: background .15s; flex-shrink: 0; }
+  .stage-btn.active .dot { background: #1D9E75; }
+  .stage-btn:hover:not(.active) { background: var(--color-background-primary); }
+
+  /* Panels */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-header { margin-bottom: 18px; }
+  .panel-header h2 { font-size: 18px; font-weight: 500; margin: 0 0 5px; }
+  .panel-header p { font-size: 13px; color: var(--color-text-secondary); margin: 0; line-height: 1.65; }
+
+  /* Card grids */
+  .cards-row   { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+  .cards-row-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 640px) {
+    .cards-row, .cards-row-2 { grid-template-columns: 1fr; }
+    .stage-btn { font-size: 10px; padding: 8px 2px 6px; }
+  }
+
+  .card {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 12px 14px;
+  }
+  .card-label {
+    font-size: 11px; font-weight: 500;
+    color: var(--color-text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .card-val { font-size: 13px; color: var(--color-text-primary); line-height: 1.6; }
+
+  .accent-l { border-left: 2.5px solid; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+  .acc-teal   { border-color: #1D9E75; }
+  .acc-blue   { border-color: #378ADD; }
+  .acc-purple { border-color: #7F77DD; }
+  .acc-amber  { border-color: #EF9F27; }
+  .acc-red    { border-color: #E24B4A; }
+  .acc-green  { border-color: #639922; }
+  .acc-coral  { border-color: #D85A30; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+  .tag-teal   { background: #E1F5EE; color: #085041; }
+  .tag-blue   { background: #E6F1FB; color: #0C447C; }
+  .tag-purple { background: #EEEDFE; color: #3C3489; }
+  .tag-amber  { background: #FAEEDA; color: #633806; }
+  .tag-red    { background: #FCEBEB; color: #791F1F; }
+  .tag-green  { background: #EAF3DE; color: #27500A; }
+  .tag-gray   { background: #F1EFE8; color: #444441; }
+
+  .flow-row  { display: flex; align-items: center; gap: 0; margin: 12px 0; flex-wrap: wrap; gap: 4px; }
+  .flow-node {
+    font-size: 11px; font-weight: 500; padding: 5px 10px;
+    border-radius: 6px; background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-secondary); white-space: nowrap;
+  }
+  .flow-arr { font-size: 13px; color: var(--color-text-tertiary); padding: 0 2px; }
+
+  .warn-box {
+    background: #FAEEDA; border: 0.5px solid #EF9F27;
+    border-radius: var(--border-radius-md); padding: 10px 12px;
+    font-size: 12px; color: #633806; line-height: 1.6; margin-top: 10px;
+  }
+  .info-box {
+    background: #E6F1FB; border: 0.5px solid #378ADD;
+    border-radius: var(--border-radius-md); padding: 10px 12px;
+    font-size: 12px; color: #0C447C; line-height: 1.6; margin-top: 10px;
+  }
+  .good-box {
+    background: #EAF3DE; border: 0.5px solid #639922;
+    border-radius: var(--border-radius-md); padding: 10px 12px;
+    font-size: 12px; color: #27500A; line-height: 1.6; margin-top: 10px;
+  }
+
+  .code-block {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--color-text-secondary);
+    line-height: 1.6; margin-top: 8px;
+    white-space: pre; overflow-x: auto;
+  }
+
+  .mini-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .mini-table td {
+    padding: 5px 8px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-secondary); vertical-align: top;
+  }
+  .mini-table td:first-child { color: var(--color-text-primary); font-weight: 500; white-space: nowrap; padding-right: 12px; }
+  .mini-table tr:last-child td { border-bottom: none; }
+
+  .rule { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 16px 0; }
+
+  /* Navigation footer */
+  .nav-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 20px; padding-top: 14px;
+    border-top: 0.5px solid var(--color-border-tertiary);
+  }
+  .nav-btn {
+    padding: 6px 16px; font-size: 12px; font-weight: 500;
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: 20px; background: var(--color-background-secondary);
+    color: var(--color-text-secondary); cursor: pointer;
+    font-family: var(--font-sans); transition: all .15s;
+  }
+  .nav-btn:hover { background: var(--color-background-primary); color: var(--color-text-primary); }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .nav-pos { font-size: 12px; color: var(--color-text-tertiary); }
+</style>
+</head>
+<body>
+
+<p class="page-title">Data lifecycle in MLOps</p>
+<p class="page-sub">10 stages — from raw sources to lineage and governance. Click any stage to jump to it.</p>
+
+<div class="stage-bar">
+  <button class="stage-btn active" onclick="go(0,this)"><div class="dot"></div>Sources</button>
+  <button class="stage-btn" onclick="go(1,this)"><div class="dot"></div>Ingestion</button>
+  <button class="stage-btn" onclick="go(2,this)"><div class="dot"></div>Validation</button>
+  <button class="stage-btn" onclick="go(3,this)"><div class="dot"></div>Versioning</button>
+  <button class="stage-btn" onclick="go(4,this)"><div class="dot"></div>Features</button>
+  <button class="stage-btn" onclick="go(5,this)"><div class="dot"></div>Splitting</button>
+  <button class="stage-btn" onclick="go(6,this)"><div class="dot"></div>Training</button>
+  <button class="stage-btn" onclick="go(7,this)"><div class="dot"></div>Serving</button>
+  <button class="stage-btn" onclick="go(8,this)"><div class="dot"></div>Drift</button>
+  <button class="stage-btn" onclick="go(9,this)"><div class="dot"></div>Lineage</button>
+</div>
+
+<!-- STAGE 0: SOURCES -->
+<div class="panel active" id="p0">
+  <div class="panel-header">
+    <h2>Data sources — where it all begins</h2>
+    <p>Every ML system is only as good as the data feeding it. Sources define the raw material: its type, freshness, reliability, and legal constraints. Understanding your source is the first thing you do before writing a single pipeline.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Structured / DB</div>
+      <div class="card-val">Relational tables, data warehouses (PostgreSQL, BigQuery, Redshift). High quality, schema-enforced. Must be snapshotted via ETL — never read live in training.</div>
+      <div class="tag-row"><span class="tag tag-teal">ETL required</span><span class="tag tag-gray">high structure</span></div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">Streaming / event</div>
+      <div class="card-val">Kafka topics, webhooks, IoT sensors, clickstreams. High volume, low latency. Challenging to reproduce. Must land in MinIO with event-time partitioning.</div>
+      <div class="tag-row"><span class="tag tag-blue">append-only</span><span class="tag tag-gray">time-ordered</span></div>
+    </div>
+    <div class="card accent-l acc-purple">
+      <div class="card-label">Files / uploads</div>
+      <div class="card-val">CSV, JSON, Parquet, images, PDFs, audio. From S3, SFTP, local disk, or user upload. Variable schema. AutoManager handles upload routing to MinIO.</div>
+      <div class="tag-row"><span class="tag tag-purple">schema varies</span><span class="tag tag-gray">manual ingestion</span></div>
+    </div>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-amber">
+      <div class="card-label">External APIs</div>
+      <div class="card-val">Weather, finance, social, third-party enrichment. Rate-limited, paid, unreliable. Always cache in MinIO with TTL — never call live during training.</div>
+      <div class="tag-row"><span class="tag tag-amber">rate-limited</span><span class="tag tag-gray">cache required</span></div>
+    </div>
+    <div class="card accent-l acc-red">
+      <div class="card-label">Synthetic / augmented</div>
+      <div class="card-val">Generated data for rare classes, privacy compliance (GDPR anonymisation), data augmentation (image flips, noise). Must be clearly labelled and versioned separately.</div>
+      <div class="tag-row"><span class="tag tag-red">label carefully</span><span class="tag tag-gray">versioned separately</span></div>
+    </div>
+    <div class="card accent-l acc-green">
+      <div class="card-label">Feedback / labels</div>
+      <div class="card-val">Production predictions labelled by humans or implicit signals (clicks, corrections). The most valuable data. Closes the training loop. Treated as a first-class source.</div>
+      <div class="tag-row"><span class="tag tag-green">closes loop</span><span class="tag tag-gray">gold standard</span></div>
+    </div>
+  </div>
+  <div class="warn-box">Common mistake: reading from a live database during training. A row updated mid-run makes your dataset non-reproducible. Always ETL-snapshot to parquet first.</div>
+  <div class="info-box">Your home lab rule: all sources must land in MinIO first — no exceptions. This is the architectural gate that makes everything downstream reproducible.</div>
+</div>
+
+<!-- STAGE 1: INGESTION -->
+<div class="panel" id="p1">
+  <div class="panel-header">
+    <h2>Ingestion — getting data into the platform</h2>
+    <p>Ingestion is the controlled act of moving raw data from source systems into your ML platform's landing zone. The golden rule: MinIO is the first and only destination. Nothing is processed until it has landed and been acknowledged.</p>
+  </div>
+  <div class="flow-row">
+    <div class="flow-node">Source system</div><div class="flow-arr">→</div>
+    <div class="flow-node">Ingestion service</div><div class="flow-arr">→</div>
+    <div class="flow-node" style="border-color:#1D9E75;color:#085041;background:#E1F5EE">MinIO raw/</div><div class="flow-arr">→</div>
+    <div class="flow-node">Ack + metadata log</div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Batch ingestion pattern</div>
+      <div class="card-val">Scheduled job (cron or Airflow DAG) runs ETL: extract from DB → transform to parquet → load to <code>minio://mlops-raw/source=db/date=YYYY-MM-DD/</code>. Date-partitioned for incremental loads. DVC then snapshots the new partition.</div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">Stream ingestion pattern</div>
+      <div class="card-val">Kafka consumer reads events → micro-batches every N minutes → writes to <code>minio://mlops-raw/source=events/dt=YYYY-MM-DD/hr=HH/</code>. Event-time partitioning (not processing-time) ensures reproducibility.</div>
+    </div>
+  </div>
+  <div class="cards-row">
+    <div class="card">
+      <div class="card-label">MinIO bucket structure</div>
+      <div class="code-block">mlops-raw/
+  source=db/date=2025-08-01/
+  source=events/dt=2025-08-01/hr=14/
+  source=uploads/type=csv/
+mlops-processed/
+  features/v=20250801/
+mlops-models/
+  sklearn/rfr/v1/model.pkl
+mlops-artifacts/
+  evidently/reports/</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Metadata captured at ingest</div>
+      <table class="mini-table">
+        <tr><td>source_id</td><td>Identifies the system of origin</td></tr>
+        <tr><td>ingest_ts</td><td>When data landed (ISO-8601)</td></tr>
+        <tr><td>row_count</td><td>Sanity check vs. source</td></tr>
+        <tr><td>schema_hash</td><td>Detects schema drift early</td></tr>
+        <tr><td>file_size_mb</td><td>For cost / quota alerting</td></tr>
+        <tr><td>checksum (md5)</td><td>Integrity verification</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">What can go wrong</div>
+      <table class="mini-table">
+        <tr><td>Partial writes</td><td>Network drop mid-upload → corrupt file. Fix: atomic write + rename.</td></tr>
+        <tr><td>Schema change</td><td>Source DB adds a column → downstream breaks. Fix: schema registry.</td></tr>
+        <tr><td>Duplicate ingestion</td><td>Job re-runs, data doubles. Fix: idempotent keys + dedup at query time.</td></tr>
+        <tr><td>Timezone mismatch</td><td>Server UTC vs app local. Fix: store all timestamps as UTC.</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="good-box">Your AutoManager already handles the routing logic. Point it at a source, configure the MinIO prefix, and it enforces the landing-zone rule automatically before any pipeline stage runs.</div>
+</div>
+
+<!-- STAGE 2: VALIDATION -->
+<div class="panel" id="p2">
+  <div class="panel-header">
+    <h2>Data validation — trust but verify</h2>
+    <p>Raw data is never clean. Validation is the quality gate between raw ingestion and processed features. It catches problems early — before they silently corrupt a model or cause an outage 3 months later.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Schema validation</div>
+      <div class="card-val">Does the data match the expected types, columns, and nullable constraints? Tools: Great Expectations, Pandera, or Pydantic. Run on every new partition before processing.</div>
+      <div class="tag-row"><span class="tag tag-teal">Pandera</span><span class="tag tag-teal">Great Expectations</span></div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">Statistical checks</div>
+      <div class="card-val">Are distributions reasonable? Check: mean ± 3σ for numerics, null rate &lt; threshold, cardinality for categoricals. Flag outliers but don't silently drop them.</div>
+      <div class="tag-row"><span class="tag tag-blue">Z-score</span><span class="tag tag-blue">IQR bounds</span></div>
+    </div>
+    <div class="card accent-l acc-amber">
+      <div class="card-label">Business rule checks</div>
+      <div class="card-val">Domain-specific: age &gt; 0, price &gt; 0, date not in future, foreign keys resolve. These are the ones you only discover when a model makes a crazy prediction.</div>
+      <div class="tag-row"><span class="tag tag-amber">domain logic</span><span class="tag tag-amber">sanity bounds</span></div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Validation outcome actions</div>
+      <table class="mini-table">
+        <tr><td>Pass</td><td>Proceed to feature engineering. Log metrics.</td></tr>
+        <tr><td>Warn</td><td>Proceed but alert. Log anomaly for review.</td></tr>
+        <tr><td>Fail (recoverable)</td><td>Quarantine batch. Retry after fix. Do not block pipeline.</td></tr>
+        <tr><td>Fail (critical)</td><td>Halt pipeline. Page on-call. Write incident report to MinIO.</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">Pandera quick example</div>
+      <div class="code-block">import pandera as pa
+
+schema = pa.DataFrameSchema({
+  "age": pa.Column(int, pa.Check.ge(0)),
+  "price": pa.Column(float, pa.Check.gt(0)),
+  "label": pa.Column(str, pa.Check.isin(
+    ["fraud","legit"]
+  )),
+}, nullable_checks=False)
+
+schema.validate(df)  # raises on fail</div>
+    </div>
+  </div>
+  <div class="warn-box">Never silently drop failed rows. Log every failure to MinIO with the row index and reason. Silent drops create invisible bias — your model learns from a filtered distribution, not the real one.</div>
+</div>
+
+<!-- STAGE 3: VERSIONING -->
+<div class="panel" id="p3">
+  <div class="panel-header">
+    <h2>Data versioning — reproducibility is everything</h2>
+    <p>A model is not just weights — it's weights + the exact dataset it was trained on. DVC is the Git for data: it tracks what changed, stores it in MinIO, and lets you reproduce any past experiment perfectly.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-purple">
+      <div class="card-label">How DVC works</div>
+      <div class="card-val">DVC replaces large files in Git with tiny <code>.dvc</code> pointer files (MD5 hash + path). The actual data stays in MinIO. <code>git checkout</code> + <code>dvc pull</code> reconstructs any historical state.</div>
+    </div>
+    <div class="card accent-l acc-purple">
+      <div class="card-label">DVC pipeline stages</div>
+      <div class="card-val"><code>dvc.yaml</code> defines DAG: ingest → validate → features → split → train. Each stage has inputs, outputs, params. <code>dvc repro</code> only re-runs what changed (content-addressed caching).</div>
+    </div>
+    <div class="card accent-l acc-purple">
+      <div class="card-label">MLflow integration</div>
+      <div class="card-val">At training time, log the DVC commit hash as an MLflow run param. Now every model knows its exact data lineage back to the raw source.</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-label">DVC + MinIO setup (home lab: 192.168.1.15)</div>
+    <div class="code-block">dvc remote add -d minio_remote s3://mlops-raw
+dvc remote modify minio_remote endpointurl http://192.168.1.15:30900
+dvc remote modify minio_remote access_key_id minioadmin
+dvc remote modify minio_remote secret_access_key minioadmin
+
+dvc add data/raw/train.parquet
+git add data/raw/train.parquet.dvc .gitignore
+git commit -m "feat: add raw training dataset v1"
+dvc push</div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card accent-l acc-blue">
+      <div class="card-label">dvc.yaml pipeline example</div>
+      <div class="code-block">stages:
+  featurize:
+    cmd: python src/features.py
+    deps:
+      - data/raw/train.parquet
+      - src/features.py
+    params:
+      - params.yaml:
+        - feature.max_na_pct
+    outs:
+      - data/processed/features.parquet</div>
+    </div>
+    <div class="card accent-l acc-teal">
+      <div class="card-label">What gets versioned</div>
+      <table class="mini-table">
+        <tr><td>Raw datasets</td><td>Immutable snapshots in MinIO</td></tr>
+        <tr><td>Processed features</td><td>Derived, re-runnable via DVC stage</td></tr>
+        <tr><td>Train/val/test splits</td><td>Exact indices, not just random seed</td></tr>
+        <tr><td>params.yaml</td><td>All hyperparams in Git</td></tr>
+        <tr><td>dvc.lock</td><td>Exact checksums of all deps + outs</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="good-box">Reproducibility test: given only a git SHA, can you recreate the exact training dataset? With DVC + MinIO: git checkout &lt;sha&gt; → dvc pull → you have the exact data. That's the bar.</div>
+</div>
+
+<!-- STAGE 4: FEATURES -->
+<div class="panel" id="p4">
+  <div class="panel-header">
+    <h2>Feature engineering — raw data → model fuel</h2>
+    <p>Features are the language your model speaks. Raw data is rarely in that language. Feature engineering is the translation layer — and it's often where 80% of the model's predictive power comes from, not the algorithm itself.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Numeric transformations</div>
+      <div class="card-val">Normalisation (min-max), standardisation (z-score), log transform for skewed distributions, binning continuous variables, polynomial features for interactions.</div>
+      <div class="tag-row"><span class="tag tag-teal">StandardScaler</span><span class="tag tag-teal">PowerTransformer</span></div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">Categorical encoding</div>
+      <div class="card-val">One-hot (low cardinality), ordinal (ordered categories), target encoding (high cardinality), embedding lookup (very high cardinality / text). Handle unseen categories at serve time.</div>
+      <div class="tag-row"><span class="tag tag-blue">OHE</span><span class="tag tag-blue">Target enc</span><span class="tag tag-blue">Embeddings</span></div>
+    </div>
+    <div class="card accent-l acc-amber">
+      <div class="card-label">Temporal features</div>
+      <div class="card-val">Day-of-week, hour-of-day, is_weekend, days_since_event, rolling averages (7d/30d), lag features. Always computed from event_time, never ingest_time.</div>
+      <div class="tag-row"><span class="tag tag-amber">rolling avg</span><span class="tag tag-amber">lag features</span></div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Training vs serving skew — the silent killer</div>
+      <div class="card-val">The #1 cause of model degradation in production. Happens when the feature computation at training time differs from serving time. Example: training uses pandas mean imputation on the full dataset; serving computes mean on the last 100 rows. The values differ.</div>
+      <div class="warn-box">Fix: use a sklearn Pipeline that is serialised with the model. The same code path must run at train and serve time.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Feature store concept</div>
+      <div class="card-val">Centralised registry of feature definitions, computed values, and serving endpoints. Online store (Redis) for low-latency serving; offline store (MinIO/Parquet) for training.</div>
+      <div class="info-box">Your setup: use sklearn Pipelines serialised into the MLflow artifact. MinIO acts as the offline feature store. When you hit scale, introduce Feast or Hopsworks.</div>
+      <div class="tag-row"><span class="tag tag-blue">Feast</span><span class="tag tag-blue">Hopsworks</span><span class="tag tag-gray">sklearn Pipeline</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-label">Pipeline that prevents train/serve skew</div>
+    <div class="code-block">from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestRegressor
+
+pipe = Pipeline([
+  ("impute", SimpleImputer(strategy="median")),
+  ("scale",  StandardScaler()),
+  ("model",  RandomForestRegressor(n_estimators=100)),
+])
+pipe.fit(X_train, y_train)
+
+import mlflow
+mlflow.sklearn.log_model(pipe, "model")
+# The WHOLE pipeline (imputer + scaler + model) is saved.
+# At serve time: pipe.predict(X_new) — same transforms, guaranteed.</div>
+  </div>
+</div>
+
+<!-- STAGE 5: SPLITTING -->
+<div class="panel" id="p5">
+  <div class="panel-header">
+    <h2>Data splitting — the three-set discipline</h2>
+    <p>How you split data is a direct proxy for how honest your model evaluation is. Get it wrong and your metrics look great in notebooks but fail in production. The three-set pattern maps perfectly to SRE's dev/staging/prod thinking.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Training set (~70%)</div>
+      <div class="card-val">The only data the model ever "sees" during fitting. Used for gradient updates, weight adjustments, and learning patterns. Think: development environment. Iterate freely.</div>
+      <div class="tag-row"><span class="tag tag-teal">model sees this</span><span class="tag tag-gray">~70% of data</span></div>
+    </div>
+    <div class="card accent-l acc-amber">
+      <div class="card-label">Validation set (~15%)</div>
+      <div class="card-val">Used to tune hyperparameters and select the best model. Your staging environment — test before committing. The model never trains on this. But you look at it, so it has indirect influence.</div>
+      <div class="tag-row"><span class="tag tag-amber">for tuning</span><span class="tag tag-gray">~15% of data</span></div>
+    </div>
+    <div class="card accent-l acc-green">
+      <div class="card-label">Test set (~15%)</div>
+      <div class="card-val">Locked away. Touched exactly once — final evaluation before production release. Your production gate. If you look at it more than once, it's contaminated and becomes val.</div>
+      <div class="tag-row"><span class="tag tag-green">one-time gate</span><span class="tag tag-gray">~15% of data</span></div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Splitting strategies</div>
+      <table class="mini-table">
+        <tr><td>Random split</td><td>For i.i.d. data. sklearn train_test_split with fixed random_state.</td></tr>
+        <tr><td>Stratified split</td><td>For imbalanced classes. Preserves class ratio in all splits.</td></tr>
+        <tr><td>Temporal split</td><td>For time-series. Train on past, val/test on future. Never shuffle.</td></tr>
+        <tr><td>Group split</td><td>When rows belong to groups (per-user). Keep all rows of a group together.</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">Data leakage — the silent error</div>
+      <table class="mini-table">
+        <tr><td>Target leakage</td><td>Feature derived from the target variable</td></tr>
+        <tr><td>Future leakage</td><td>Using t+1 data to predict t</td></tr>
+        <tr><td>Scaler leak</td><td>Fitting scaler on full dataset before split</td></tr>
+        <tr><td>Duplicate rows</td><td>Same row appearing in both train and test</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-label">Correct stratified split with index persistence</div>
+    <div class="code-block">from sklearn.model_selection import train_test_split
+import numpy as np
+
+X_train, X_tmp, y_train, y_tmp = train_test_split(
+    X, y, test_size=0.30, random_state=42, stratify=y)
+X_val, X_test, y_val, y_test = train_test_split(
+    X_tmp, y_tmp, test_size=0.50, random_state=42, stratify=y_tmp)
+
+# Save exact indices to DVC for reproducibility
+np.save("data/splits/train_idx.npy", X_train.index)
+np.save("data/splits/val_idx.npy",   X_val.index)
+np.save("data/splits/test_idx.npy",  X_test.index)
+# dvc add data/splits/ — version the exact split</div>
+  </div>
+  <div class="warn-box">Always fit preprocessing (scalers, encoders, imputers) on training data only, then transform val and test. Fitting on the full dataset before splitting is the most common leakage mistake.</div>
+</div>
+
+<!-- STAGE 6: TRAINING -->
+<div class="panel" id="p6">
+  <div class="panel-header">
+    <h2>Data in training — how the model consumes data</h2>
+    <p>Training is not just "pass data to model.fit()". At scale, how data is loaded, batched, shuffled, and augmented determines speed, convergence, and the quality of what the model learns.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Batch loading</div>
+      <div class="card-val">Data loaded in mini-batches (e.g. 32–256 rows). Never load the full dataset into RAM. Use pandas read_parquet with column selection, or PyTorch DataLoader with lazy reading from MinIO.</div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">Shuffling</div>
+      <div class="card-val">Shuffle training data each epoch to break order bias. Do NOT shuffle validation or test sets. For time-series: do not shuffle at all — temporal order is the signal.</div>
+    </div>
+    <div class="card accent-l acc-amber">
+      <div class="card-label">Data augmentation</div>
+      <div class="card-val">Creating synthetic variants: image flips/crops/noise, text back-translation, SMOTE for class imbalance, Gaussian noise on tabular numerics. Applied only to training data — never val/test.</div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Class imbalance handling</div>
+      <table class="mini-table">
+        <tr><td>Oversampling</td><td>SMOTE — generate synthetic minority samples. Applied after train split.</td></tr>
+        <tr><td>Undersampling</td><td>Randomly drop majority class rows. Risk: losing signal.</td></tr>
+        <tr><td>Class weights</td><td>sklearn class_weight="balanced" — scale loss by inverse frequency.</td></tr>
+        <tr><td>Threshold tuning</td><td>Move decision boundary post-training. Cheapest option.</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">MLflow data logging during training</div>
+      <div class="code-block">import mlflow, subprocess
+
+mlflow.log_param("n_train_rows",
+  len(X_train))
+mlflow.log_param("n_features",
+  X_train.shape[1])
+mlflow.log_param("class_balance",
+  str(y_train.value_counts().to_dict()))
+mlflow.log_param("dvc_data_hash",
+  subprocess.check_output(
+    ["git","rev-parse","HEAD"]
+  ).decode().strip())
+mlflow.log_metric("train_rmse", train_rmse)</div>
+    </div>
+  </div>
+  <div class="good-box">A training run in MLflow should be fully self-describing: given the run ID alone, you can find the exact model version, the exact dataset (via DVC hash), the exact params, and every metric. No external notes needed.</div>
+</div>
+
+<!-- STAGE 7: SERVING -->
+<div class="panel" id="p7">
+  <div class="panel-header">
+    <h2>Serving data — data at inference time</h2>
+    <p>When a model runs in production, data arrives one row at a time, in real time, from an external caller. The challenges here are latency, consistency with training, and handling inputs you never saw during training.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Online features</div>
+      <div class="card-val">Features computed at request time from live data. Must be fast (&lt;10ms). Served from Redis or a low-latency KV store. Examples: user's last 5 clicks, current session length.</div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">Precomputed features</div>
+      <div class="card-val">Features computed in batch and cached. Looked up by entity key (user_id, product_id) at request time. Slightly stale (minutes to hours) but very fast. Stored in Redis or DynamoDB.</div>
+    </div>
+    <div class="card accent-l acc-amber">
+      <div class="card-label">Request payload</div>
+      <div class="card-val">Raw data sent by the caller — validated by Pydantic schema, then transformed through the same sklearn Pipeline that was trained. The pipeline handles all feature engineering identically to training.</div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Handling unseen values at serving</div>
+      <table class="mini-table">
+        <tr><td>Unknown category</td><td>Map to "unknown" token — must be in training vocab. Never return 500.</td></tr>
+        <tr><td>Missing features</td><td>Impute with training median/mode (stored in Pipeline). Never forward null to model.</td></tr>
+        <tr><td>Out-of-range numeric</td><td>Clip to [min, max] seen in training. Log the clip for drift monitoring.</td></tr>
+        <tr><td>Schema change</td><td>Return 422 with clear error. Do not guess at missing columns.</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">Request + response logging to MinIO</div>
+      <div class="code-block">{
+  "request_id": "uuid-v4",
+  "ts": "2025-08-01T14:32:00Z",
+  "model_version": "rfr-v3",
+  "input_features": {
+    "MedInc": 8.3252,
+    "HouseAge": 41.0,
+    "AveRooms": 6.98
+  },
+  "prediction": 412500.0,
+  "confidence": 0.87,
+  "latency_ms": 23
+}</div>
+    </div>
+  </div>
+  <div class="warn-box">Training-serving skew: if your FastAPI endpoint applies any transformation that differs from the sklearn Pipeline inside the model artifact, predictions will be biased. The pipeline object must be the single source of truth for all transforms.</div>
+</div>
+
+<!-- STAGE 8: DRIFT -->
+<div class="panel" id="p8">
+  <div class="panel-header">
+    <h2>Data drift & monitoring — detecting when data changes</h2>
+    <p>Models degrade because the world changes, not because the code breaks. Drift monitoring is the early warning system: watching the statistical distribution of incoming data and comparing it against what the model was trained on.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-red">
+      <div class="card-label">Data drift (input)</div>
+      <div class="card-val">The distribution of input features shifts. Example: a new city is added, changing the geographic distribution. The model hasn't seen these patterns. Performance degrades invisibly.</div>
+      <div class="tag-row"><span class="tag tag-red">PSI test</span><span class="tag tag-red">KS test</span></div>
+    </div>
+    <div class="card accent-l acc-amber">
+      <div class="card-label">Concept drift (label)</div>
+      <div class="card-val">The relationship between features and target changes. Example: fraud patterns evolve — old patterns stop being fraudulent, new ones emerge. Model accuracy drops even if inputs look the same.</div>
+      <div class="tag-row"><span class="tag tag-amber">hardest to detect</span><span class="tag tag-amber">needs labels</span></div>
+    </div>
+    <div class="card accent-l acc-purple">
+      <div class="card-label">Prediction drift</div>
+      <div class="card-val">The distribution of model outputs shifts. Easier to detect than concept drift because you don't need labels. A proxy for both data drift and concept drift. Monitor this first.</div>
+      <div class="tag-row"><span class="tag tag-purple">no labels needed</span><span class="tag tag-purple">early signal</span></div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Statistical tests used</div>
+      <table class="mini-table">
+        <tr><td>PSI</td><td>Population Stability Index. &lt;0.1 stable, 0.1–0.2 watch, &gt;0.2 alert.</td></tr>
+        <tr><td>KS test</td><td>Kolmogorov-Smirnov for continuous distributions. p &lt; 0.05 = drift.</td></tr>
+        <tr><td>Chi-squared</td><td>For categorical features. Compares frequency tables.</td></tr>
+        <tr><td>Jensen-Shannon</td><td>Symmetric KL divergence. Works on any distribution.</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-label">Evidently in your home lab</div>
+      <div class="code-block">from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
+
+report = Report(metrics=[DataDriftPreset()])
+report.run(
+  reference_data=train_df,
+  current_data=prod_df   # last 7d inference logs
+)
+report.save_html("drift_report.html")
+
+# Upload to MinIO
+minio.fput_object(
+  "mlops-artifacts",
+  "evidently/2025-08-01.html",
+  "drift_report.html"
+)</div>
+    </div>
+  </div>
+  <div class="flow-row">
+    <div class="flow-node">Inference logs in MinIO</div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node">Evidently CronJob</div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node">PSI / KS compute</div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node" style="border-color:#EF9F27;color:#633806;background:#FAEEDA">Drift score → Prometheus</div>
+    <div class="flow-arr">→</div>
+    <div class="flow-node" style="border-color:#1D9E75;color:#085041;background:#E1F5EE">Grafana alert</div>
+  </div>
+</div>
+
+<!-- STAGE 9: LINEAGE -->
+<div class="panel" id="p9">
+  <div class="panel-header">
+    <h2>Data lineage & governance — the full audit trail</h2>
+    <p>Lineage is the ability to answer: where did this data come from, what transformations were applied, who touched it, and which models were trained on it? Governance adds the policy layer: who can access what, under what conditions.</p>
+  </div>
+  <div class="cards-row">
+    <div class="card accent-l acc-teal">
+      <div class="card-label">Lineage chain</div>
+      <div class="card-val">Source system → ingest job → MinIO raw → DVC snapshot → feature pipeline → MLflow experiment → model version → KServe deployment → inference logs. Every link is traceable.</div>
+    </div>
+    <div class="card accent-l acc-blue">
+      <div class="card-label">How MLflow + DVC provide it</div>
+      <div class="card-val">MLflow run stores: DVC hash (→ exact dataset), git SHA (→ exact code), params.yaml (→ exact config). Given an MLflow run_id, you can reconstruct every artifact and the data that produced it.</div>
+    </div>
+    <div class="card accent-l acc-purple">
+      <div class="card-label">Governance basics</div>
+      <div class="card-val">Who can read raw PII data? Who can promote models to production? MinIO bucket policies + IAM roles enforce access. Audit logs track all S3 API calls for compliance (GDPR, SOC2).</div>
+    </div>
+  </div>
+  <div class="cards-row-2">
+    <div class="card">
+      <div class="card-label">Lineage query: "which model used this data?"</div>
+      <div class="code-block">import mlflow
+
+client = mlflow.tracking.MlflowClient()
+runs = client.search_runs(
+  experiment_ids=["1"],
+  filter_string=(
+    "params.dvc_data_hash = 'abc123def456'"
+  )
+)
+for r in runs:
+  print(
+    r.info.run_id,
+    r.data.tags.get("mlflow.runName")
+  )</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Governance checklist for production</div>
+      <table class="mini-table">
+        <tr><td>PII identification</td><td>Tag columns with data class in schema registry</td></tr>
+        <tr><td>Retention policy</td><td>Auto-expire raw data after 90 days via MinIO lifecycle</td></tr>
+        <tr><td>Access control</td><td>MinIO bucket policies per team/role</td></tr>
+        <tr><td>Anonymisation</td><td>Hash/mask PII before model training</td></tr>
+        <tr><td>Right to erasure</td><td>Track which training sets contain a user → retrain on delete</td></tr>
+        <tr><td>Model cards</td><td>Document data sources, biases, intended use</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="good-box">Your RFS project maps directly here: a causality graph over the data lineage graph would let you instantly answer "this model is degrading — which upstream data source changed?" That's the observability/lineage intersection.</div>
+</div>
+
+<!-- Navigation footer -->
+<div class="nav-footer">
+  <button class="nav-btn" id="btn-prev" onclick="nav(-1)" disabled>← Previous</button>
+  <span class="nav-pos" id="nav-pos">Stage 1 of 10</span>
+  <button class="nav-btn" id="btn-next" onclick="nav(1)">Next →</button>
+</div>
+
+<script>
+var cur = 0;
+var stages = ["Sources","Ingestion","Validation","Versioning","Features","Splitting","Training","Serving","Drift","Lineage"];
+var btns = document.querySelectorAll('.stage-btn');
+
+function go(idx, btn) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  btns.forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('p'+idx).classList.add('active');
+  if (btn) btn.classList.add('active');
+  else btns[idx].classList.add('active');
+  cur = idx;
+  document.getElementById('nav-pos').textContent = 'Stage '+(idx+1)+' of '+stages.length+' — '+stages[idx];
+  document.getElementById('btn-prev').disabled = (idx === 0);
+  document.getElementById('btn-next').disabled = (idx === stages.length - 1);
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function nav(dir) {
+  var next = cur + dir;
+  if (next >= 0 && next < stages.length) go(next, null);
+}
+
+go(0, null);
+</script>
+</body>
+</html>
