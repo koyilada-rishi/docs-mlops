@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MLOps Architecture — Interactive Map</title>
+<style>
+:root {
+  --bg:  #0c0c0b; --bg2: #141413; --bg3: #1c1c1a; --bg4: #242422;
+  --t1:  #e8e6de; --t2:  #a0a09a; --t3:  #5a5a55;
+  --b1:  rgba(255,255,255,0.18); --b2: rgba(255,255,255,0.09); --b3: rgba(255,255,255,0.04);
+  --mono: ui-monospace,"Fira Code",monospace;
+  --sans: system-ui,-apple-system,sans-serif;
+  --c-data:  #1D9E75; --c-store: #378ADD; --c-valid: #E8A020;
+  --c-feat:  #9B6BDE; --c-train: #EF9F27; --c-serve: #7F77DD;
+  --c-obs:   #D85A30; --c-orch:  #017CEE; --c-cicd:  #639922;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* HEADER */
+header{padding:16px 28px;border-bottom:0.5px solid var(--b2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;background:var(--bg);z-index:50}
+.logo{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--c-data)}
+.nav-links{display:flex;gap:3px;flex-wrap:wrap}
+.nav-links a{font-size:11px;color:var(--t2);padding:4px 8px;border-radius:5px;transition:.15s}
+.nav-links a:hover{background:var(--bg3);color:var(--t1)}
+.badge{font-size:10px;font-weight:500;color:var(--t3);border:0.5px solid var(--b2);border-radius:20px;padding:3px 10px}
+
+/* TITLE */
+.title-row{text-align:center;padding:28px 20px 16px}
+.title-row h1{font-size:26px;font-weight:500;letter-spacing:-.02em;margin-bottom:8px}
+.title-row h1 em{color:var(--c-data);font-style:normal}
+.title-row p{font-size:12px;color:var(--t2)}
+
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 20px 20px}
+.leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--t2)}
+.leg-dot{width:7px;height:7px;border-radius:2px}
+
+/* CANVAS */
+.canvas{padding:0 20px 40px;max-width:1440px;margin:0 auto}
+
+/* DATA FLOW STRIP */
+.flow-strip{background:var(--bg3);border:0.5px solid var(--b2);border-radius:10px;padding:10px 16px;margin-bottom:18px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;overflow-x:auto}
+.fn{font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;border:0.5px solid var(--b2);background:var(--bg2);color:var(--t2);white-space:nowrap}
+.fa{color:var(--t3);font-size:12px;flex-shrink:0}
+.flow-lbl{font-size:10px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+
+/* ZONE LABEL */
+.zlbl{font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.zlbl::after{content:'';flex:1;height:0.5px;background:var(--b2)}
+
+/* MAIN PIPELINE */
+.pipe{display:grid;grid-template-columns:1fr 32px 1fr 32px 1fr 32px 1fr 32px 1fr 32px 1fr 32px 1fr;align-items:start;gap:0;margin-bottom:14px}
+.arr{display:flex;align-items:flex-start;justify-content:center;padding-top:28px;color:var(--t3);font-size:13px;user-select:none}
+
+/* BLOCK */
+.blk{background:var(--bg2);border:0.5px solid var(--b2);border-radius:11px;padding:13px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;position:relative;overflow:hidden;display:block;height:100%}
+.blk::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--bc,var(--c-data));border-radius:11px 11px 0 0}
+.blk:hover{transform:translateY(-3px);border-color:var(--bc,var(--c-data));box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.bzone{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--bc,var(--c-data));margin-bottom:5px}
+.btitle{font-size:12px;font-weight:500;color:var(--t1);margin-bottom:5px;line-height:1.3}
+.bdesc{font-size:10px;color:var(--t2);line-height:1.6;margin-bottom:9px}
+.btools{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.tp{font-size:9px;font-weight:500;padding:2px 6px;border-radius:3px;background:var(--b3);border:0.5px solid var(--b2);color:var(--t2);transition:.15s}
+.blk:hover .tp{background:rgba(var(--br,29,158,117),.14);border-color:rgba(var(--br,29,158,117),.3);color:var(--t1)}
+.blink{font-size:10px;color:var(--t3);display:flex;align-items:center;gap:3px}
+.blink span{transition:transform .15s}
+.blk:hover .blink span{transform:translateX(3px)}
+
+/* FEEDBACK */
+.fb{background:rgba(216,90,48,.06);border:0.5px dashed rgba(216,90,48,.3);border-radius:9px;padding:9px 16px;margin-bottom:18px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fb-lbl{font-size:9px;font-weight:700;color:#D85A30;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+
+/* HR */
+hr{border:none;border-top:0.5px solid var(--b2);margin:20px 0}
+
+/* GRID ROWS */
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g10{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+
+/* WIDE BLOCK */
+.wblk{background:var(--bg2);border:0.5px solid var(--b2);border-radius:11px;padding:14px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s;position:relative;overflow:hidden;display:block}
+.wblk::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--bc,var(--c-orch));border-radius:11px 11px 0 0}
+.wblk:hover{transform:translateY(-2px);border-color:var(--bc,var(--c-orch));box-shadow:0 8px 28px rgba(0,0,0,.45)}
+.wtitle{font-size:13px;font-weight:500;margin-bottom:5px}
+.wsub{font-size:10px;color:var(--t2);line-height:1.6;margin-bottom:9px}
+.wlink{font-size:10px;color:var(--t3);margin-top:8px;display:flex;align-items:center;gap:3px}
+.wlink span{transition:transform .15s}
+.wblk:hover .wlink span{transform:translateX(3px)}
+.wblk:hover .tp{background:rgba(var(--br,1,124,238),.14);border-color:rgba(var(--br,1,124,238),.3);color:var(--t1)}
+
+/* QUICK NAV */
+.qnav-item{background:var(--bg2);border:0.5px solid var(--b2);border-radius:8px;padding:12px;display:block;transition:.15s}
+.qnav-item:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.qn{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.qt{font-size:11px;font-weight:500;margin-bottom:3px}
+.qs{font-size:10px;color:var(--t3)}
+
+@media(max-width:900px){
+  .pipe{grid-template-columns:1fr}.arr{display:none}
+  .g3,.g4,.g5,.g10{grid-template-columns:1fr 1fr}
+}
+@media(max-width:500px){
+  .g3,.g4,.g5,.g10{grid-template-columns:1fr}
+  header{padding:12px 16px}
+  .canvas{padding:0 12px 32px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div>MLOps Architecture</div>
+  <div class="nav-links">
+    <a href="01-data.html">Data</a><a href="02-features.html">Features</a>
+    <a href="03-training.html">Training</a><a href="04-serving.html">Serving</a>
+    <a href="05-observability.html">Observability</a><a href="06-cicd.html">CI/CD</a>
+    <a href="07-glossary.html">Glossary</a><a href="08-airflow.html">Airflow</a>
+    <a href="09-kubeflow.html">Kubeflow</a><a href="10-tools.html">Tools</a>
+  </div>
+  <div class="badge">Click any block → study that topic</div>
+</header>
+
+<div class="title-row">
+  <h1>Complete MLOps Architecture — <em>Interactive Map</em></h1>
+  <p>Every stage · Every tool · Every connection · Click any block to go deep on that topic</p>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:var(--c-data)"></div>Data Sources</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-store)"></div>Storage</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-valid)"></div>Validation</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-feat)"></div>Feature Eng.</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-train)"></div>Training</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-serve)"></div>Serving</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-obs)"></div>Observability</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-orch)"></div>Orchestration</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--c-cicd)"></div>CI/CD</div>
+</div>
+
+<div class="canvas">
+
+<!-- DATA FLOW STRIP -->
+<div class="flow-strip">
+  <div class="flow-lbl">Flow →</div>
+  <div class="fn" style="border-color:rgba(29,158,117,.4);color:#9FE1CB">Sources</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(55,138,221,.4);color:#B5D4F4">MinIO raw/</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(232,160,32,.4);color:#FAC775">Validate (GE)</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(55,138,221,.4);color:#B5D4F4">DVC push</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(155,107,222,.4);color:#CECBF6">Feature Eng.</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(239,159,39,.4);color:#FAC775">Train + Eval</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(239,159,39,.4);color:#FAC775">MLflow Registry</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(127,119,221,.4);color:#CECBF6">KServe / FastAPI</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(216,90,48,.4);color:#F0997B">Evidently Drift</div><div class="fa">→</div>
+  <div class="fn" style="border-color:rgba(216,90,48,.4);color:#F0997B">↺ Retrain</div>
+</div>
+
+<!-- ══════════════════════════════════════
+  MAIN PIPELINE — 7 CLICKABLE BLOCKS
+══════════════════════════════════════ -->
+<div class="zlbl">Main pipeline — click each stage</div>
+
+<div class="pipe">
+
+  <!-- 1. DATA SOURCES -->
+  <a href="01-data.html" class="blk" style="--bc:var(--c-data);--br:29,158,117">
+    <div class="bzone">01 — Data Sources</div>
+    <div class="btitle">Raw Data Ingestion</div>
+    <div class="bdesc">All data lands in MinIO first — databases, Kafka streams, REST APIs, file uploads, feedback labels. ETL snapshots DB to parquet. Never read live DB during training.</div>
+    <div class="btools">
+      <span class="tp">PostgreSQL / MySQL</span><span class="tp">Apache Kafka</span>
+      <span class="tp">REST APIs</span><span class="tp">CSV / Parquet</span>
+      <span class="tp">ETL jobs</span><span class="tp">Feedback labels</span>
+      <span class="tp">boto3</span><span class="tp">event-time partitioning</span>
+    </div>
+    <div class="blink">Study data pipeline <span>→</span></div>
+  </a>
+
+  <div class="arr">→</div>
+
+  <!-- 2. STORAGE -->
+  <a href="01-data.html" class="blk" style="--bc:var(--c-store);--br:55,138,221">
+    <div class="bzone">02 — Storage</div>
+    <div class="btitle">MinIO + DVC + Git</div>
+    <div class="bdesc">Two MinIO zones: raw/ (90d TTL audit) and dvc-cache/ (permanent, MD5-addressed). Git tracks .dvc pointer files — not actual data. dvc pull reconstructs exact version anywhere.</div>
+    <div class="btools">
+      <span class="tp">MinIO (S3-compat)</span><span class="tp">DVC</span>
+      <span class="tp">Git / GitHub</span><span class="tp">mlops-raw/</span>
+      <span class="tp">mlops-dvc-cache/</span><span class="tp">mlops-models/</span>
+      <span class="tp">mlops-artifacts/</span><span class="tp">Parquet</span>
+    </div>
+    <div class="blink">Study storage zones <span>→</span></div>
+  </a>
+
+  <div class="arr">→</div>
+
+  <!-- 3. VALIDATION -->
+  <a href="10-tools.html" class="blk" style="--bc:var(--c-valid);--br:232,160,32">
+    <div class="bzone">03 — Validation</div>
+    <div class="btitle">Data Quality Gates</div>
+    <div class="bdesc">Layer 1 (raw): schema, stats, business rules via Great Expectations — halt on fail. Layer 2 (model-specific): feature contract check before training starts. Fail = exit(1).</div>
+    <div class="btools">
+      <span class="tp">Great Expectations</span><span class="tp">Expectation Suite</span>
+      <span class="tp">Checkpoint</span><span class="tp">Data Docs → MinIO</span>
+      <span class="tp">Pandera</span><span class="tp">dbt tests</span>
+      <span class="tp">Schema hash check</span>
+    </div>
+    <div class="blink">Study GE, Pandera, dbt <span>→</span></div>
+  </a>
+
+  <div class="arr">→</div>
+
+  <!-- 4. FEATURES -->
+  <a href="02-features.html" class="blk" style="--bc:var(--c-feat);--br:155,107,222">
+    <div class="bzone">04 — Feature Engineering</div>
+    <div class="btitle">Raw → Model Language</div>
+    <div class="bdesc">sklearn Pipeline serialises all transforms (imputer + scaler + encoder + model) as one pkl artifact. Same pipeline used at training and serving — zero skew possible. Feast for multi-model feature reuse.</div>
+    <div class="btools">
+      <span class="tp">sklearn Pipeline</span><span class="tp">ColumnTransformer</span>
+      <span class="tp">StandardScaler</span><span class="tp">OneHotEncoder</span>
+      <span class="tp">SimpleImputer</span><span class="tp">Target encoding</span>
+      <span class="tp">Cyclical sin/cos</span><span class="tp">Lag + rolling</span>
+      <span class="tp">dbt models</span><span class="tp">Feast (feature store)</span>
+      <span class="tp">SHAP selection</span>
+    </div>
+    <div class="blink">Study feature engineering <span>→</span></div>
+  </a>
+
+  <div class="arr">→</div>
+
+  <!-- 5. TRAINING -->
+  <a href="03-training.html" class="blk" style="--bc:var(--c-train);--br:239,159,39">
+    <div class="bzone">05 — Training</div>
+    <div class="btitle">Train → Evaluate → Registry</div>
+    <div class="bdesc">MLflow tracks every run (params, metrics, git SHA, DVC hash). Two-stage eval gate: val set first, test set once. Only RMSE &lt; threshold models reach registry. Optuna/Katib for HPO.</div>
+    <div class="btools">
+      <span class="tp">MLflow Tracking</span><span class="tp">Model Registry</span>
+      <span class="tp">Optuna (Bayesian HPO)</span><span class="tp">Katib (K8s HPO)</span>
+      <span class="tp">RandomForest</span><span class="tp">XGBoost</span>
+      <span class="tp">PyTorch</span><span class="tp">PostgreSQL backend</span>
+      <span class="tp">Eval gate</span><span class="tp">Staging → Production</span>
+    </div>
+    <div class="blink">Study training pipeline <span>→</span></div>
+  </a>
+
+  <div class="arr">→</div>
+
+  <!-- 6. SERVING -->
+  <a href="04-serving.html" class="blk" style="--bc:var(--c-serve);--br:127,119,221">
+    <div class="bzone">06 — Serving</div>
+    <div class="btitle">Predictions → Users</div>
+    <div class="bdesc">FastAPI gateway: JWT auth, Pydantic validation (422 on bad input), rate limiting. KServe loads model from MLflow registry, auto-scales on K3s. Canary: 10% → 50% → 100%. All requests logged to MinIO.</div>
+    <div class="btools">
+      <span class="tp">FastAPI</span><span class="tp">KServe</span>
+      <span class="tp">BentoML</span><span class="tp">Seldon Core</span>
+      <span class="tp">K3s / K8s</span><span class="tp">Docker</span>
+      <span class="tp">JWT + Pydantic</span><span class="tp">Rate limiting</span>
+      <span class="tp">Canary rollout</span><span class="tp">v2 Protocol</span>
+      <span class="tp">Online + Batch</span>
+    </div>
+    <div class="blink">Study serving pipeline <span>→</span></div>
+  </a>
+
+  <div class="arr">→</div>
+
+  <!-- 7. OBSERVABILITY -->
+  <a href="05-observability.html" class="blk" style="--bc:var(--c-obs);--br:216,90,48">
+    <div class="bzone">07 — Observability</div>
+    <div class="btitle">Monitor → Detect → Alert → Retrain</div>
+    <div class="bdesc">3 layers: infra (pod/CPU/mem), ML (latency p99/confidence/null-fills), drift (PSI + KS test). Evidently runs nightly vs MinIO inference logs. PSI &gt; 0.2 → AlertManager → retrain DAG.</div>
+    <div class="btools">
+      <span class="tp">Prometheus</span><span class="tp">Grafana</span>
+      <span class="tp">Evidently</span><span class="tp">AlertManager</span>
+      <span class="tp">PSI / KS test</span><span class="tp">Data drift</span>
+      <span class="tp">Concept drift</span><span class="tp">Prediction drift</span>
+      <span class="tp">node_exporter</span><span class="tp">kube-state-metrics</span>
+    </div>
+    <div class="blink">Study observability <span>→</span></div>
+  </a>
+
+</div><!-- end pipe -->
+
+<!-- FEEDBACK LOOP -->
+<div class="fb">
+  <div class="fb-lbl">↺ Feedback loop</div>
+  <div class="fa">—</div>
+  <div class="fn">Inference logs → mlops-artifacts/</div><div class="fa">→</div>
+  <div class="fn">Evidently CronJob reads logs vs training data</div><div class="fa">→</div>
+  <div class="fn">PSI &gt; 0.2 → AlertManager fires</div><div class="fa">→</div>
+  <div class="fn">Airflow retrain DAG triggered</div><div class="fa">→</div>
+  <div class="fn">New data → DVC → retrain → promote</div><div class="fa">→</div>
+  <div class="fn">KServe picks up new Production model</div><div class="fa">→</div>
+  <span style="font-size:10px;color:#D85A30;font-weight:600">loop continues ↺</span>
+</div>
+
+<hr/>
+
+<!-- ══════════════════════════════════════
+  STORAGE DETAIL
+══════════════════════════════════════ -->
+<div class="zlbl">Storage layer — what lives in each MinIO bucket</div>
+<div class="g4">
+  <a href="01-data.html" class="wblk" style="--bc:var(--c-store);--br:55,138,221">
+    <div class="wtitle" style="color:#B5D4F4">📦 mlops-raw/</div>
+    <div class="wsub">Raw landing zone. All ingestion writes here first. Human-readable path keys (source=db/date=2025-08-01/). 90-day S3 lifecycle expiry. Immutable audit record.</div>
+    <div class="btools"><span class="tp">ETL writes</span><span class="tp">S3 lifecycle 90d</span><span class="tp">Parquet</span><span class="tp">Source partitioned</span></div>
+  </a>
+  <a href="01-data.html" class="wblk" style="--bc:var(--c-store);--br:55,138,221">
+    <div class="wtitle" style="color:#B5D4F4">🗄️ mlops-dvc-cache/</div>
+    <div class="wsub">DVC remote. Content-addressed by MD5 hash. Permanent — never deleted. dvc push writes here, dvc pull reads from here. Deduplication: same file = same hash = stored once.</div>
+    <div class="btools"><span class="tp">DVC push/pull</span><span class="tp">MD5 keyed</span><span class="tp">Permanent</span><span class="tp">Deduped</span></div>
+  </a>
+  <a href="03-training.html" class="wblk" style="--bc:var(--c-train);--br:239,159,39">
+    <div class="wtitle" style="color:#FAC775">🤖 mlops-models/</div>
+    <div class="wsub">MLflow artifact store. Frozen sklearn Pipeline pkl (imputer stats, scaler means, OHE categories all locked). KServe loads model via storageUri at deploy time.</div>
+    <div class="btools"><span class="tp">MLflow artifacts</span><span class="tp">pipeline.pkl</span><span class="tp">conda.yaml</span><span class="tp">KServe storageUri</span></div>
+  </a>
+  <a href="05-observability.html" class="wblk" style="--bc:var(--c-obs);--br:216,90,48">
+    <div class="wtitle" style="color:#F0997B">📊 mlops-artifacts/</div>
+    <div class="wsub">Evidently HTML drift reports, SHAP plots, inference request logs (one JSON per request). Evidently's CronJob reads inference-logs/ to build drift report.</div>
+    <div class="btools"><span class="tp">Evidently reports</span><span class="tp">SHAP plots</span><span class="tp">inference-logs/</span><span class="tp">GE Data Docs</span></div>
+  </a>
+</div>
+
+<hr/>
+
+<!-- ══════════════════════════════════════
+  ORCHESTRATION
+══════════════════════════════════════ -->
+<div class="zlbl">Orchestration — who schedules and runs every stage</div>
+<div class="g3">
+
+  <a href="08-airflow.html" class="wblk" style="--bc:var(--c-orch);--br:1,124,238">
+    <div class="wtitle" style="color:#7EC8FA">🌀 Apache Airflow</div>
+    <div class="wsub">DAG-based scheduler. 3 production DAGs: ingestion (daily 1AM cron), training (triggered after ingest via TriggerDagRunOperator), drift-retrain (nightly after Evidently via BranchPythonOperator checks PSI). KubernetesPodOperator runs heavy steps as isolated K3s pods.</div>
+    <div class="btools">
+      <span class="tp">DAG</span><span class="tp">PythonOperator</span><span class="tp">BashOperator</span>
+      <span class="tp">KubernetesPodOperator</span><span class="tp">S3KeySensor</span>
+      <span class="tp">BranchPythonOperator</span><span class="tp">TriggerDagRunOperator</span>
+      <span class="tp">XCom</span><span class="tp">KubernetesExecutor</span>
+      <span class="tp">Airflow Connections</span><span class="tp">Variables</span>
+    </div>
+    <div class="wlink" style="color:var(--c-orch)">Study Airflow — DAGs, operators, patterns <span>→</span></div>
+  </a>
+
+  <a href="09-kubeflow.html" class="wblk" style="--bc:#00B0FF;--br:0,176,255">
+    <div class="wtitle" style="color:#7DDDFF">⚙️ Kubeflow Pipelines (KFP)</div>
+    <div class="wsub">ML-native orchestration. Each step is a typed container with Dataset/Model/Metrics artifacts tracked via MLMD for automatic lineage. dsl.If enables conditional promotion gates. Katib runs parallel HPO trials as separate K8s pods using Bayesian search — smarter than grid.</div>
+    <div class="btools">
+      <span class="tp">@dsl.component</span><span class="tp">ContainerSpec</span>
+      <span class="tp">dsl.If (conditional)</span><span class="tp">Katib HPO</span>
+      <span class="tp">MLMD lineage</span><span class="tp">Bayesian search</span>
+      <span class="tp">pipeline.yaml</span><span class="tp">Argo Workflows</span>
+      <span class="tp">Dataset / Model artifacts</span>
+    </div>
+    <div class="wlink" style="color:#00B0FF">Study Kubeflow — KFP, Katib, vs Airflow <span>→</span></div>
+  </a>
+
+  <a href="06-cicd.html" class="wblk" style="--bc:var(--c-cicd);--br:99,153,34">
+    <div class="wtitle" style="color:#C0DD97">🔁 CI/CD — GitHub Actions</div>
+    <div class="wsub">Git push → CI: ruff lint + pytest + dvc repro + test_skew.py + Docker build + GHCR push. Merge → CD: kubectl apply + rollout status + smoke_test.py (latency + schema + positive prediction). Drift → workflow_dispatch retrain. Rollback: git revert + MLflow version transition.</div>
+    <div class="btools">
+      <span class="tp">GitHub Actions YAML</span><span class="tp">ruff lint</span>
+      <span class="tp">pytest</span><span class="tp">dvc repro</span>
+      <span class="tp">test_skew.py</span><span class="tp">Docker build</span>
+      <span class="tp">kubectl apply</span><span class="tp">smoke_test.py</span>
+      <span class="tp">workflow_dispatch</span><span class="tp">rollout undo</span>
+    </div>
+    <div class="wlink" style="color:var(--c-cicd)">Study CI/CD — workflows, rollback, retrain <span>→</span></div>
+  </a>
+
+</div>
+
+<hr/>
+
+<!-- ══════════════════════════════════════
+  TOOLS
+══════════════════════════════════════ -->
+<div class="zlbl">Supporting tools — complete the production stack</div>
+<div class="g5">
+
+  <a href="10-tools.html" class="wblk" style="--bc:var(--c-data);--br:29,158,117">
+    <div class="wtitle" style="color:#9FE1CB">✅ Great Expectations</div>
+    <div class="wsub">Data quality as code. Expectation Suites run at every ingest. Checkpoints halt pipeline on fail. Data Docs (HTML report) auto-saved to MinIO. GE vs Pandera: use Pandera for fast in-code, GE for full audit platform.</div>
+    <div class="btools"><span class="tp">Expectation Suite</span><span class="tp">Checkpoint</span><span class="tp">Data Docs</span><span class="tp">MinIO backend</span></div>
+    <div class="wlink" style="color:var(--c-data)">Study GE <span>→</span></div>
+  </a>
+
+  <a href="10-tools.html" class="wblk" style="--bc:var(--c-train);--br:239,159,39">
+    <div class="wtitle" style="color:#FAC775">🏪 Feast (Feature Store)</div>
+    <div class="wsub">Offline store (MinIO Parquet) gives point-in-time correct features for training. Online store (Redis) gives sub-millisecond features at serving time. Materialise on a schedule to keep Redis fresh.</div>
+    <div class="btools"><span class="tp">FeatureView</span><span class="tp">Redis online</span><span class="tp">Point-in-time</span><span class="tp">Materialise</span></div>
+    <div class="wlink" style="color:var(--c-train)">Study Feast <span>→</span></div>
+  </a>
+
+  <a href="10-tools.html" class="wblk" style="--bc:#FF6F45;--br:255,111,69">
+    <div class="wtitle" style="color:#FFB59E">🔷 dbt (data build tool)</div>
+    <div class="wsub">SQL feature engineering in your warehouse. ref() builds DAG automatically. Incremental models process only new rows. Rolling windows, group-bys, joins — all in pure SQL. dbt test asserts data quality after each model run.</div>
+    <div class="btools"><span class="tp">dbt models</span><span class="tp">ref()</span><span class="tp">Incremental</span><span class="tp">dbt test</span><span class="tp">dbt docs</span></div>
+    <div class="wlink" style="color:#FF6F45">Study dbt <span>→</span></div>
+  </a>
+
+  <a href="10-tools.html" class="wblk" style="--bc:var(--c-serve);--br:127,119,221">
+    <div class="wtitle" style="color:#CECBF6">📦 BentoML</div>
+    <div class="wsub">Package model + code + deps into a "Bento". bentoml build + bentoml containerize → Docker image in two commands. Async Runner handles concurrent inference. Faster to start with than KServe. Deploy anywhere.</div>
+    <div class="btools"><span class="tp">Bento</span><span class="tp">Runner</span><span class="tp">bentoml serve</span><span class="tp">containerize</span></div>
+    <div class="wlink" style="color:var(--c-serve)">Study BentoML <span>→</span></div>
+  </a>
+
+  <a href="10-tools.html" class="wblk" style="--bc:var(--c-obs);--br:216,90,48">
+    <div class="wtitle" style="color:#F0997B">🕸️ Seldon Core</div>
+    <div class="wsub">Inference graph YAML chains: outlier detector → model predictor → SHAP explainer — all in one manifest with canary traffic split. Alibi Detect adds online drift detection. Preferred in regulated industries.</div>
+    <div class="btools"><span class="tp">Inference graph</span><span class="tp">Alibi Detect</span><span class="tp">SHAP explainer</span><span class="tp">SeldonDeployment</span></div>
+    <div class="wlink" style="color:var(--c-obs)">Study Seldon <span>→</span></div>
+  </a>
+
+</div>
+
+<hr/>
+
+<!-- ══════════════════════════════════════
+  QUICK NAV
+══════════════════════════════════════ -->
+<div class="zlbl">All study pages</div>
+<div class="g10">
+  <a href="01-data.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-data)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-data)">01</div>
+    <div class="qt">Data Pipeline</div>
+    <div class="qs">ETL · MinIO · DVC · Kafka</div>
+  </a>
+  <a href="02-features.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-feat)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-feat)">02</div>
+    <div class="qt">Feature Engineering</div>
+    <div class="qs">sklearn · OHE · Scaling · SHAP</div>
+  </a>
+  <a href="03-training.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-train)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-train)">03</div>
+    <div class="qt">Training Pipeline</div>
+    <div class="qs">MLflow · Optuna · Registry</div>
+  </a>
+  <a href="04-serving.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-serve)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-serve)">04</div>
+    <div class="qt">Serving Pipeline</div>
+    <div class="qs">FastAPI · KServe · Canary</div>
+  </a>
+  <a href="05-observability.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-obs)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-obs)">05</div>
+    <div class="qt">Observability</div>
+    <div class="qs">Prometheus · Grafana · Evidently</div>
+  </a>
+  <a href="06-cicd.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-cicd)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-cicd)">06</div>
+    <div class="qt">CI/CD Loop</div>
+    <div class="qs">GitHub Actions · Docker · K3s</div>
+  </a>
+  <a href="07-glossary.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-store)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-store)">07</div>
+    <div class="qt">Glossary</div>
+    <div class="qs">100+ searchable terms</div>
+  </a>
+  <a href="08-airflow.html" class="qnav-item" onmouseover="this.style.borderColor='var(--c-orch)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:var(--c-orch)">08</div>
+    <div class="qt">Apache Airflow</div>
+    <div class="qs">DAGs · Operators · Sensors</div>
+  </a>
+  <a href="09-kubeflow.html" class="qnav-item" onmouseover="this.style.borderColor='#00B0FF'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:#00B0FF">09</div>
+    <div class="qt">Kubeflow</div>
+    <div class="qs">KFP · Katib · MLMD</div>
+  </a>
+  <a href="10-tools.html" class="qnav-item" onmouseover="this.style.borderColor='#E24B4A'" onmouseout="this.style.borderColor='rgba(255,255,255,0.09)'">
+    <div class="qn" style="color:#E24B4A">10</div>
+    <div class="qt">Tools Deep Dive</div>
+    <div class="qs">GE · Feast · dbt · BentoML · Seldon</div>
+  </a>
+</div>
+
+</div><!-- canvas -->
+
+<footer style="text-align:center;padding:20px;font-size:11px;color:var(--t3);border-top:0.5px solid var(--b2)">
+  Home lab: Proxmox → K3s · MinIO 192.168.1.15:30900 · MLflow :30500 · Grafana · Prometheus<br>
+  <span style="color:var(--t3);margin-top:4px;display:block">Target roles: Flipkart · Swiggy · PhonePe · Walmart · Sarvam AI — 40+ LPA</span>
+</footer>
+</body>
+</html>
