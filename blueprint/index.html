@@ -1,0 +1,2947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLOps Architecture Blueprint — Complete Guide</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap');
+:root{
+  --bg:#060810;--surface:#0b0e18;--surface2:#10141f;--surface3:#161b28;
+  --border:#1c2235;--border2:#252d42;
+  --cyan:#00e5ff;--green:#00ff87;--yellow:#ffd60a;--orange:#ff8c00;
+  --red:#ff4757;--purple:#bd93f9;--pink:#ff79c6;--blue:#4fc3f7;
+  --text:#cdd6f4;--text2:#6c7a9c;--muted:#313d5a;--white:#ffffff;
+  --header-h:72px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Manrope',sans-serif;font-size:14px;line-height:1.75;overflow-x:hidden;}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* HEADER */
+.hdr{background:var(--bg);border-bottom:1px solid var(--border);padding:0 32px;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300;}
+.hdr-logo{font-family:'Fira Code',monospace;font-size:14px;color:var(--cyan);letter-spacing:1px;}
+.hdr-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.top-nav{display:flex;gap:3px;flex-wrap:wrap;}
+.tnav{background:none;border:1px solid var(--border2);color:var(--text2);font-family:'Fira Code',monospace;font-size:11px;padding:5px 13px;border-radius:4px;cursor:pointer;transition:.2s;white-space:nowrap;}
+.tnav:hover{color:var(--cyan);border-color:var(--cyan);}
+.tnav.on{background:var(--cyan);color:#000;border-color:var(--cyan);font-weight:700;}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - var(--header-h));}
+
+/* SIDEBAR */
+.sbar{width:215px;min-width:215px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;}
+.sg{font-family:'Fira Code',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;padding:14px 16px 4px;}
+.si{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:12px;color:var(--text2);cursor:pointer;transition:.15s;border-left:2px solid transparent;user-select:none;}
+.si:hover{color:var(--text);background:var(--surface2);}
+.si.on{color:var(--cyan);border-left-color:var(--cyan);background:rgba(0,229,255,.05);}
+.si-ic{font-size:13px;flex-shrink:0;}
+.sb-section{display:none;}
+.sb-section.on{display:block;}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:32px 40px;}
+.page{display:none;}
+.page.on{display:block;}
+.subp{display:none;}
+.subp.on{display:block;}
+
+/* TYPOGRAPHY */
+h1{font-family:'Fira Code',monospace;font-size:19px;color:var(--white);margin-bottom:6px;}
+.tag{font-size:9px;color:var(--text2);letter-spacing:3px;display:block;margin-bottom:5px;text-transform:uppercase;font-weight:400;}
+h2{font-family:'Fira Code',monospace;font-size:12px;color:var(--cyan);margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+h3{font-size:13px;font-weight:700;color:var(--yellow);margin:18px 0 7px;}
+h4{font-size:12px;font-weight:600;color:var(--green);margin:12px 0 5px;}
+p{margin-bottom:10px;}
+.lead{font-size:14px;color:var(--text2);border-left:3px solid var(--cyan);padding-left:14px;margin-bottom:22px;line-height:1.8;}
+strong{color:var(--white);font-weight:600;}
+ul,ol{padding-left:18px;margin:8px 0;}
+li{margin-bottom:4px;}
+hr{border:none;border-top:1px solid var(--border);margin:22px 0;}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;}
+th{background:var(--surface3);color:var(--cyan);font-family:'Fira Code',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:8px 12px;text-align:left;border:1px solid var(--border);}
+td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;}
+tr:nth-child(even) td{background:rgba(255,255,255,.02);}
+pre{font-family:'Fira Code',monospace;background:#050710;border:1px solid var(--border);border-radius:6px;padding:16px 18px;font-size:11px;line-height:1.65;color:#e2e8f0;overflow-x:auto;margin:12px 0;}
+code{font-family:'Fira Code',monospace;background:rgba(0,229,255,.08);color:var(--cyan);padding:2px 6px;border-radius:3px;font-size:11px;}
+
+/* BOXES */
+.box{border-radius:6px;padding:13px 17px;margin:12px 0;border:1px solid;font-size:13px;}
+.bx-c{background:rgba(0,229,255,.05);border-color:rgba(0,229,255,.25);}
+.bx-g{background:rgba(0,255,135,.05);border-color:rgba(0,255,135,.25);}
+.bx-y{background:rgba(255,214,10,.05);border-color:rgba(255,214,10,.25);}
+.bx-r{background:rgba(255,71,87,.05);border-color:rgba(255,71,87,.25);}
+.bx-p{background:rgba(189,147,249,.05);border-color:rgba(189,147,249,.25);}
+.bt{font-family:'Fira Code',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.bt{font-family:'Fira Code',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.bx-c .bt{color:var(--cyan);}.bx-g .bt{color:var(--green);}.bx-y .bt{color:var(--yellow);}.bx-r .bt{color:var(--red);}.bx-p .bt{color:var(--purple);}
+.hdr-logo{font-family:'Fira Code',monospace;font-size:14px;color:var(--cyan);letter-spacing:1px;}
+.hdr-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.ab-ic{font-size:17px;margin-bottom:3px;}.ab-name{font-family:'Fira Code',monospace;font-size:10px;font-weight:600;color:var(--white);}.ab-sub{font-size:9px;color:var(--text2);margin-top:1px;}
+.dp-sub{font-size:11px;color:var(--text2);}
+.dp-title{font-family:'Fira Code',monospace;font-size:15px;color:var(--white);}
+
+/* PILLS */
+.pill{display:inline-block;font-family:'Fira Code',monospace;font-size:9px;padding:2px 8px;border-radius:20px;font-weight:600;margin:2px;}
+.pc{background:rgba(0,229,255,.15);color:var(--cyan);border:1px solid rgba(0,229,255,.3);}
+.pg{background:rgba(0,255,135,.15);color:var(--green);border:1px solid rgba(0,255,135,.3);}
+.py{background:rgba(255,214,10,.15);color:var(--yellow);border:1px solid rgba(255,214,10,.3);}
+.pr{background:rgba(255,71,87,.15);color:var(--red);border:1px solid rgba(255,71,87,.3);}
+.pp{background:rgba(189,147,249,.15);color:var(--purple);border:1px solid rgba(189,147,249,.3);}
+
+/* ── ARCH DIAGRAM ── */
+.arch-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:24px;margin:18px 0;overflow-x:auto;}
+.arch-label{font-family:'Fira Code',monospace;font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;}
+.arch-row{display:flex;align-items:center;flex-wrap:nowrap;gap:0;margin-bottom:18px;}
+.arch-row:last-child{margin-bottom:0;}
+.layer-title{font-family:'Fira Code',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
+.ab{background:var(--surface3);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.2s;min-width:108px;text-align:center;flex-shrink:0;}
+.ab:hover{transform:translateY(-2px);box-shadow:0 4px 18px rgba(0,229,255,.12);}
+.ab.on{border-color:var(--cyan)!important;background:rgba(0,229,255,.08);box-shadow:0 0 16px rgba(0,229,255,.18);}
+.ab-ic{font-size:17px;margin-bottom:3px;}
+.ab-name{font-family:'Fira Code',monospace;font-size:10px;font-weight:600;color:var(--white);}
+.ab-sub{font-size:9px;color:var(--text2);margin-top:1px;}
+.ab.ac{border-color:rgba(0,229,255,.4);}
+.ab.ag{border-color:rgba(0,255,135,.4);}
+.ab.ay{border-color:rgba(255,214,10,.4);}
+.ab.ao{border-color:rgba(255,140,0,.4);}
+.ab.ap{border-color:rgba(189,147,249,.4);}
+.ab.ak{border-color:rgba(255,121,198,.4);}
+.ab.ab2{border-color:rgba(79,195,247,.4);}
+.arr{display:flex;flex-direction:column;align-items:center;padding:0 6px;flex-shrink:0;}
+.arr-line{width:36px;height:2px;background:linear-gradient(90deg,var(--border2),var(--muted));position:relative;}
+.arr-line::after{content:'▶';position:absolute;right:-8px;top:-6px;font-size:10px;color:var(--muted);}
+.arr-lbl{font-size:8px;color:var(--muted);margin-top:4px;white-space:nowrap;font-family:'Fira Code',monospace;}
+
+/* ── DETAIL PANEL ── */
+.dp{background:var(--surface2);border:1px solid var(--cyan);border-radius:10px;padding:22px;margin:14px 0;display:none;}
+.dp.on{display:block;}
+.dp-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.dp-ic{font-size:26px;}
+.dp-title{font-family:'Fira Code',monospace;font-size:15px;color:var(--white);}
+.dp-sub{font-size:11px;color:var(--text2);}
+.dtabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;}
+.dtab{background:none;border:1px solid var(--border2);color:var(--text2);font-family:'Fira Code',monospace;font-size:10px;padding:4px 11px;border-radius:4px;cursor:pointer;transition:.15s;}
+.dtab:hover{color:var(--cyan);border-color:var(--cyan);}
+.dtab.on{background:rgba(0,229,255,.1);color:var(--cyan);border-color:var(--cyan);}
+.dtc{display:none;}
+.dtc.on{display:block;}
+
+/* 5 WHYS */
+.whys{margin:10px 0;}
+.why{display:flex;gap:10px;margin-bottom:8px;padding:9px 13px;background:var(--surface3);border-radius:6px;border-left:3px solid var(--purple);}
+.why-n{font-family:'Fira Code',monospace;font-size:10px;color:var(--purple);font-weight:700;min-width:46px;}
+.why-t{font-size:13px;color:var(--text);}
+
+/* ── METRIC CARDS ── */
+.mc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin:14px 0;}
+.mc{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:.2s;}
+.mc:hover{border-color:var(--cyan);transform:translateY(-2px);}
+.mc.on{border-color:var(--cyan);background:rgba(0,229,255,.03);}
+.mc-top{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+.mc-ic{font-size:19px;}
+.mc-name{font-family:'Fira Code',monospace;font-size:13px;font-weight:700;color:var(--white);}
+.mc-badge{font-size:9px;padding:2px 7px;border-radius:20px;margin-left:auto;font-family:'Fira Code',monospace;}
+.br{background:rgba(0,229,255,.15);color:var(--cyan);}
+.bc{background:rgba(189,147,249,.15);color:var(--purple);}
+.mc-nick{font-size:12px;color:var(--text2);}
+.mc-formula{font-family:'Fira Code',monospace;font-size:11px;color:var(--yellow);background:var(--surface3);padding:5px 9px;border-radius:4px;margin:7px 0;}
+.mc-detail{display:none;font-size:12px;color:var(--text2);margin-top:8px;border-top:1px solid var(--border);padding-top:8px;}
+.mc-detail.on{display:block;}
+.mr{display:flex;gap:7px;margin:4px 0;align-items:flex-start;}
+.ml{font-family:'Fira Code',monospace;font-size:10px;color:var(--green);min-width:78px;font-weight:600;}
+
+/* ── DRIFT CARDS ── */
+.dc{background:var(--surface2);border:1px solid var(--border);border-left:4px solid;border-radius:8px;padding:16px 18px;margin:10px 0;cursor:pointer;transition:.2s;}
+.dc:hover{transform:translateX(3px);}
+.dc.on{background:rgba(255,255,255,.02);}
+.dc-top{display:flex;align-items:center;gap:10px;margin-bottom:3px;}
+.dc-num{font-family:'Fira Code',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;}
+.dc-name{font-family:'Fira Code',monospace;font-size:13px;font-weight:700;color:var(--white);}
+.dc-sub{font-size:12px;color:var(--text2);margin-bottom:6px;}
+.dc-body{display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;}
+.dc-body.on{display:block;}
+.ds{margin:8px 0;}
+.ds-title{font-family:'Fira Code',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px;}
+
+
+/*home button-*/
+.home-btn {
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: #0b0e18;
+  color: #cdd6f4;
+  text-decoration: none;
+  border: 1px solid #252d42;
+  font-family: 'Fira Code', monospace;
+  transition: 0.2s;
+}
+
+.home-btn:hover {
+  background: #00e5ff;
+  color: #000;
+  border-color: #00e5ff;
+}
+
+
+/* ── DICTIONARY ── */
+.dsearch{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:10px 15px;color:var(--text);font-family:'Fira Code',monospace;font-size:13px;margin-bottom:14px;outline:none;transition:.2s;}
+.dsearch:focus{border-color:var(--cyan);}
+.dsearch::placeholder{color:var(--muted);}
+.de{border-bottom:1px solid var(--border);padding:13px 0;}
+.dt{font-family:'Fira Code',monospace;font-size:14px;font-weight:700;color:var(--cyan);}
+.dcat{font-size:9px;padding:1px 8px;border-radius:20px;margin-left:8px;font-family:'Fira Code',monospace;}
+.ci{background:rgba(79,195,247,.15);color:var(--blue);}
+.cm{background:rgba(189,147,249,.15);color:var(--purple);}
+.cd{background:rgba(0,255,135,.15);color:var(--green);}
+.co{background:rgba(255,214,10,.15);color:var(--yellow);}
+.cc{background:rgba(255,140,0,.15);color:var(--orange);}
+.dd{font-size:13px;color:var(--text);margin:5px 0 4px;}
+.dex{font-size:12px;color:var(--text2);}
+.dex::before{content:"Example: ";color:var(--yellow);font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HEADER ═══════════════════════════════════════════ -->
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:12px;">
+
+  <a href="/docs-mlops/" class="home-btn">Home</a>
+
+  <div>
+    <div class="hdr-logo">// MLOps Architecture Blueprint</div>
+    <div class="hdr-sub">Complete reference — diagrams · components · metrics · drift · terminology</div>
+  </div>
+
+</div>
+  <div class="top-nav">
+    <button class="tnav on"  onclick="showPage('arch',this)">Architecture</button>
+    <button class="tnav"     onclick="showPage('metrics',this)">Metrics</button>
+    <button class="tnav"     onclick="showPage('drift',this)">Drift Types</button>
+    <button class="tnav"     onclick="showPage('comp',this)">Components</button>
+    <button class="tnav"     onclick="showPage('dict',this)">Terminology</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ LAYOUT ══════════════════════════════════════════ -->
+<div class="layout">
+
+<!-- ─── SIDEBAR ─── -->
+<div class="sbar">
+
+  <div id="sb-arch" class="sb-section on">
+    <div class="sg">Flows</div>
+    <div class="si on" onclick="showSub('arch','full',this)"><span class="si-ic">🔄</span>Full Pipeline</div>
+    <div class="si"    onclick="showSub('arch','train',this)"><span class="si-ic">🏋️</span>Training Flow</div>
+    <div class="si"    onclick="showSub('arch','serve',this)"><span class="si-ic">🚀</span>Serving Flow</div>
+    <div class="si"    onclick="showSub('arch','monitor',this)"><span class="si-ic">📊</span>Monitoring Flow</div>
+    <div class="si"    onclick="showSub('arch','cicd',this)"><span class="si-ic">⚡</span>CI/CD Flow</div>
+    <div class="si"    onclick="showSub('arch','data',this)"><span class="si-ic">🗄️</span>Data Flow</div>
+  </div>
+
+  <div id="sb-metrics" class="sb-section">
+    <div class="sg">Regression</div>
+    <div class="si on" onclick="showSub('metrics','reg',this)"><span class="si-ic">📈</span>RMSE · MAE · R²</div>
+    <div class="sg">Classification</div>
+    <div class="si"    onclick="showSub('metrics','cls',this)"><span class="si-ic">🎯</span>Precision · Recall · F1</div>
+    <div class="si"    onclick="showSub('metrics','auc',this)"><span class="si-ic">📉</span>AUC-ROC · PR-AUC</div>
+    <div class="sg">Production</div>
+    <div class="si"    onclick="showSub('metrics','prod',this)"><span class="si-ic">🏭</span>Infra Metrics</div>
+    <div class="si"    onclick="showSub('metrics','when',this)"><span class="si-ic">❓</span>When To Use Which</div>
+  </div>
+
+  <div id="sb-drift" class="sb-section">
+    <div class="sg">All Types</div>
+    <div class="si on" onclick="showSub('drift','all',this)"><span class="si-ic">🌊</span>All 6 Drift Types</div>
+    <div class="sg">Deep Dive</div>
+    <div class="si"    onclick="showSub('drift','detect',this)"><span class="si-ic">🔍</span>Detection Methods</div>
+    <div class="si"    onclick="showSub('drift','psi',this)"><span class="si-ic">📐</span>PSI & KS Test</div>
+    <div class="si"    onclick="showSub('drift','play',this)"><span class="si-ic">🛠️</span>Response Playbook</div>
+  </div>
+
+  <div id="sb-comp" class="sb-section">
+    <div class="sg">Training</div>
+    <div class="si on" onclick="showSub('comp','mlflow',this)"><span class="si-ic">📋</span>MLflow</div>
+    <div class="si"    onclick="showSub('comp','minio',this)"><span class="si-ic">🪣</span>MinIO / S3</div>
+    <div class="si"    onclick="showSub('comp','dvc',this)"><span class="si-ic">📦</span>DVC</div>
+    <div class="sg">Serving</div>
+    <div class="si"    onclick="showSub('comp','kserve',this)"><span class="si-ic">⚡</span>KServe</div>
+    <div class="si"    onclick="showSub('comp','fastapi',this)"><span class="si-ic">🌐</span>FastAPI Predictor</div>
+    <div class="si"    onclick="showSub('comp','knative',this)"><span class="si-ic">☁️</span>Knative</div>
+    <div class="sg">Monitoring</div>
+    <div class="si"    onclick="showSub('comp','prometheus',this)"><span class="si-ic">🔥</span>Prometheus</div>
+    <div class="si"    onclick="showSub('comp','grafana',this)"><span class="si-ic">📊</span>Grafana</div>
+    <div class="si"    onclick="showSub('comp','evidently',this)"><span class="si-ic">🧪</span>Evidently</div>
+    <div class="si"    onclick="showSub('comp','pushgw',this)"><span class="si-ic">📡</span>Pushgateway</div>
+    <div class="sg">Orchestration</div>
+    <div class="si"    onclick="showSub('comp','gha',this)"><span class="si-ic">🔄</span>GitHub Actions</div>
+    <div class="si"    onclick="showSub('comp','kubeflow',this)"><span class="si-ic">🎛️</span>Kubeflow</div>
+    <div class="si"    onclick="showSub('comp','airflow',this)"><span class="si-ic">🌀</span>Airflow</div>
+  </div>
+
+  <div id="sb-dict" class="sb-section">
+    <div class="sg">Search</div>
+    <div class="si on" onclick="showSub('dict','all',this)"><span class="si-ic">📖</span>All Terms A–Z</div>
+  </div>
+
+</div><!-- /sbar -->
+
+<!-- ─── CONTENT ─── -->
+<div class="content">
+
+<!-- ████████████████████████████████ PAGE: ARCH ████████████████████████████████ -->
+<div class="page on" id="page-arch">
+
+<!-- SUBPAGE: FULL PIPELINE -->
+<div class="subp on" id="arch-full">
+  <h1><span class="tag">Architecture · Complete</span>Full MLOps Pipeline — Click Any Block</h1>
+  <p class="lead">Click any block in the diagram below to see: what it is, why it exists (5 Whys), how it's built, prerequisites, and connections to other components.</p>
+
+  <div class="arch-wrap">
+    <div class="arch-label">// COMPLETE MLOPS PIPELINE — YOUR STACK</div>
+
+    <!-- Layer 1: Training -->
+    <div style="margin-bottom:20px;">
+      <div class="layer-title">▸ TRAINING LAYER</div>
+      <div class="arch-row">
+        <div class="ab ac" onclick="activateBlock(this,'dp-rawdata')"><div class="ab-ic">🗄️</div><div class="ab-name">Raw Data</div><div class="ab-sub">DVC + MinIO</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">ingest</div></div>
+        <div class="ab ac" onclick="activateBlock(this,'dp-feateng')"><div class="ab-ic">⚙️</div><div class="ab-name">Feature Eng</div><div class="ab-sub">transform</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">fit</div></div>
+        <div class="ab ag" onclick="activateBlock(this,'dp-training')"><div class="ab-ic">🏋️</div><div class="ab-name">Training</div><div class="ab-sub">sklearn / GPU</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">log</div></div>
+        <div class="ab ag" onclick="activateBlock(this,'dp-mlflow')"><div class="ab-ic">📋</div><div class="ab-name">MLflow</div><div class="ab-sub">track + registry</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">store pkl</div></div>
+        <div class="ab ac" onclick="activateBlock(this,'dp-minio')"><div class="ab-ic">🪣</div><div class="ab-name">MinIO</div><div class="ab-sub">artifact store</div></div>
+      </div>
+    </div>
+
+    <!-- Layer 2: Serving -->
+    <div style="margin-bottom:20px;">
+      <div class="layer-title">▸ SERVING LAYER</div>
+      <div class="arch-row">
+        <div class="ab ay" onclick="activateBlock(this,'dp-kserve')"><div class="ab-ic">⚡</div><div class="ab-name">KServe IS</div><div class="ab-sub">InferenceService</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">runs</div></div>
+        <div class="ab ay" onclick="activateBlock(this,'dp-fastapi')"><div class="ab-ic">🌐</div><div class="ab-name">FastAPI</div><div class="ab-sub">predictor pod</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">via</div></div>
+        <div class="ab ay" onclick="activateBlock(this,'dp-kourier')"><div class="ab-ic">🔀</div><div class="ab-name">Kourier</div><div class="ab-sub">ingress / LB</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">request</div></div>
+        <div class="ab ao" onclick="activateBlock(this,'dp-client')"><div class="ab-ic">💻</div><div class="ab-name">Client</div><div class="ab-sub">curl / app</div></div>
+      </div>
+    </div>
+
+    <!-- Layer 3: Monitoring -->
+    <div>
+      <div class="layer-title">▸ MONITORING LAYER</div>
+      <div class="arch-row">
+        <div class="ab ak" onclick="activateBlock(this,'dp-logger')"><div class="ab-ic">📝</div><div class="ab-name">Logger</div><div class="ab-sub">async batch</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">parquet</div></div>
+        <div class="ab ak" onclick="activateBlock(this,'dp-predsbkt')"><div class="ab-ic">📁</div><div class="ab-name">Predictions</div><div class="ab-sub">MinIO bucket</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">read</div></div>
+        <div class="ab ap" onclick="activateBlock(this,'dp-evidently')"><div class="ab-ic">🧪</div><div class="ab-name">Evidently</div><div class="ab-sub">drift detect</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">push</div></div>
+        <div class="ab ap" onclick="activateBlock(this,'dp-pushgw')"><div class="ab-ic">📡</div><div class="ab-name">Pushgateway</div><div class="ab-sub">metrics buffer</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">scrape</div></div>
+        <div class="ab ab2" onclick="activateBlock(this,'dp-prometheus')"><div class="ab-ic">🔥</div><div class="ab-name">Prometheus</div><div class="ab-sub">time series</div></div>
+        <div class="arr"><div class="arr-line"></div><div class="arr-lbl">query</div></div>
+        <div class="ab ab2" onclick="activateBlock(this,'dp-grafana')"><div class="ab-ic">📊</div><div class="ab-name">Grafana</div><div class="ab-sub">dashboards</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ALL DETAIL PANELS ─── -->
+
+  <!-- RAW DATA -->
+  <div class="dp" id="dp-rawdata">
+    <div class="dp-hdr"><div class="dp-ic">🗄️</div><div><div class="dp-title">Raw Data / DVC</div><div class="dp-sub">Data versioning — foundation of reproducibility</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-rawdata','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-rawdata','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-rawdata','how',this)">How Built</button>
+      <button class="dtab" onclick="showDTab('dp-rawdata','prereq',this)">Prerequisites</button>
+      <button class="dtab" onclick="showDTab('dp-rawdata','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-rawdata-what">
+      <h3>What It Is</h3>
+      <p>DVC (Data Version Control) treats data like Git treats code. Every dataset version is tracked with a SHA-256 hash. The actual data files live in MinIO/S3. Git stores only tiny .dvc pointer files.</p>
+      <pre>dvc-data bucket structure:
+  nayak-mlops/
+    house-prediction-model/
+      v1/
+        train.parquet    ← 16,512 rows, 9 columns (reference data)
+        test.parquet     ← 4,128 rows
+        full.parquet     ← 20,640 rows (complete dataset)
+
+DVC pointer file stored in Git (tiny, ~100 bytes):
+  data/train.parquet.dvc → {md5: "abc123...", path: "nayak-mlops/..."}</pre>
+    </div>
+    <div class="dtc" id="dp-rawdata-why">
+      <h3>5 Whys — Why Do We Need This?</h3>
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need to reproduce any training run exactly, any time.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Because a model trained last month might behave differently today if data changed silently.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Because we can't commit large data files to Git — they'd bloat the repository to gigabytes.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Because without data versioning, we can't link a specific model to the exact data that produced it.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Because production audits, debugging regressions, and regulatory compliance all require proof of what data the model trained on.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-rawdata-how">
+      <h3>How It's Built</h3>
+      <pre>pip install dvc[s3]
+dvc init && git add .dvc/ && git commit -m "init dvc"
+
+# Point DVC at your MinIO
+dvc remote add minio s3://dvc-data
+dvc remote modify minio endpointurl http://192.168.1.15:30900
+dvc remote modify minio access_key_id minioadmin
+dvc remote modify minio secret_access_key minioadmin
+dvc remote default minio
+
+# Track your training data
+dvc add data/train.parquet
+git add data/train.parquet.dvc .gitignore
+git commit -m "add training data v1"
+dvc push  # uploads to MinIO dvc-data bucket</pre>
+    </div>
+    <div class="dtc" id="dp-rawdata-prereq">
+      <h3>Prerequisites</h3>
+      <ul><li>Git repository initialized</li><li>MinIO <code>dvc-data</code> bucket created</li><li><code>pip install dvc[s3]</code></li><li>MinIO credentials available</li></ul>
+    </div>
+    <div class="dtc" id="dp-rawdata-conn">
+      <h3>Connections</h3>
+      <table><tr><th>Connects To</th><th>How</th><th>Why</th></tr>
+      <tr><td>MinIO dvc-data</td><td>boto3 S3 API</td><td>Stores actual data files</td></tr>
+      <tr><td>Git</td><td>.dvc pointer files</td><td>Tracks which data version matches which code</td></tr>
+      <tr><td>Training script</td><td>dvc pull → local files</td><td>Downloads correct data version before training</td></tr>
+      <tr><td>Evidently CronJob</td><td>Direct S3 path read</td><td>Reads train.parquet as drift reference</td></tr></table>
+    </div>
+  </div>
+
+  <!-- FEATURE ENG -->
+  <div class="dp" id="dp-feateng">
+    <div class="dp-hdr"><div class="dp-ic">⚙️</div><div><div class="dp-title">Feature Engineering</div><div class="dp-sub">Transform raw data into model-ready features</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-feateng','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-feateng','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-feateng','how',this)">How Built</button>
+      <button class="dtab" onclick="showDTab('dp-feateng','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-feateng-what">
+      <h3>California Housing Features</h3>
+      <table><tr><th>Feature</th><th>Raw Column</th><th>Type</th><th>Range</th></tr>
+      <tr><td>MedInc</td><td>Median Income</td><td>Continuous</td><td>0.5 – 15.0</td></tr>
+      <tr><td>HouseAge</td><td>House Age (years)</td><td>Continuous</td><td>1 – 52</td></tr>
+      <tr><td>AveRooms</td><td>Total Rooms / Households</td><td>Derived</td><td>3 – 10</td></tr>
+      <tr><td>AveBedrms</td><td>Total Bedrooms / Households</td><td>Derived</td><td>0.8 – 1.5</td></tr>
+      <tr><td>Population</td><td>Block population</td><td>Continuous</td><td>100 – 3000</td></tr>
+      <tr><td>AveOccup</td><td>Population / Households</td><td>Derived</td><td>1.5 – 5.0</td></tr>
+      <tr><td>Latitude</td><td>Geographic lat</td><td>Continuous</td><td>32 – 42</td></tr>
+      <tr><td>Longitude</td><td>Geographic lon</td><td>Continuous</td><td>-124 – -114</td></tr></table>
+      <div class="box bx-r"><div class="bt">⚠ Training-Serving Skew Risk</div>AveRooms, AveBedrms, AveOccup are derived (divided) features. If serving code computes them differently from training code, the model receives wrong inputs silently. Always use shared feature computation code.</div>
+    </div>
+    <div class="dtc" id="dp-feateng-why">
+      <h3>5 Whys</h3>
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">Raw data often isn't in the format a model can use directly.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Models need numeric, scaled, normalized inputs — raw strings, nulls, and unscaled values degrade performance.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Derived features (AveRooms = TotalRooms/Households) capture richer relationships than raw totals.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Feature engineering is where domain knowledge enters the model — it can improve accuracy more than tuning algorithms.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">The same features must be computed identically at training and serving time — inconsistency causes training-serving skew, the #1 silent model killer.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-feateng-how">
+      <h3>How It's Computed</h3>
+      <pre># sklearn loads California Housing with pre-derived features
+from sklearn.datasets import fetch_california_housing
+data = fetch_california_housing(as_frame=True)
+
+# Feature matrix X: 8 columns already engineered
+# Target y: median house value in $100k units
+
+# Train/test split — never touch test until final eval
+X_train, X_test, y_train, y_test = train_test_split(
+    data.data, data.target,
+    test_size=0.2, random_state=42
+)
+
+# For production serving: same 8 features expected
+# Input: {"features": [MedInc, HouseAge, AveRooms, AveBedrms,
+#                       Population, AveOccup, Latitude, Longitude]}</pre>
+    </div>
+    <div class="dtc" id="dp-feateng-conn">
+      <h3>Connections</h3>
+      <table><tr><th>Connects To</th><th>Why</th></tr>
+      <tr><td>Training script</td><td>Features go directly into model.fit()</td></tr>
+      <tr><td>FastAPI predictor</td><td>Expects same 8 features in same order at serving time</td></tr>
+      <tr><td>Evidently</td><td>Monitors distribution of these 8 features for drift</td></tr></table>
+    </div>
+  </div>
+
+  <!-- TRAINING -->
+  <div class="dp" id="dp-training">
+    <div class="dp-hdr"><div class="dp-ic">🏋️</div><div><div class="dp-title">Model Training</div><div class="dp-sub">RandomForest on California Housing — Windows GPU node</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-training','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-training','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-training','how',this)">How Built</button>
+      <button class="dtab" onclick="showDTab('dp-training','prereq',this)">Prerequisites</button>
+    </div>
+    <div class="dtc on" id="dp-training-what">
+      <h3>Model: RandomForestRegressor</h3>
+      <table><tr><th>Param</th><th>Value</th><th>Why</th></tr>
+      <tr><td>n_estimators</td><td>100</td><td>100 trees — balance of accuracy vs training time</td></tr>
+      <tr><td>max_depth</td><td>10</td><td>Limits depth to prevent overfitting</td></tr>
+      <tr><td>random_state</td><td>42</td><td>Reproducible results</td></tr></table>
+      <h3>Results</h3>
+      <table><tr><th>Metric</th><th>Value</th><th>Interpretation</th></tr>
+      <tr><td>R²</td><td>0.81</td><td>Model explains 81% of house price variance</td></tr>
+      <tr><td>RMSE</td><td>0.52</td><td>Average error ≈ $52,000 (target in $100k units)</td></tr>
+      <tr><td>MAE</td><td>0.37</td><td>Median absolute error ≈ $37,000</td></tr></table>
+      <div class="box bx-y"><div class="bt">⚠ Version Issue</div>Model trained with sklearn 1.7.2 but predictor container has 1.4.2. Fix: pin same version in both requirements.txt files.</div>
+    </div>
+    <div class="dtc" id="dp-training-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need a model that predicts California house prices accurately.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">RandomForest is chosen because it handles non-linear feature interactions, is robust to outliers, and requires no feature scaling.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Geographic features (lat/lon) have non-linear relationships with price — tree models handle this naturally.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">RandomForest gives feature importance for free — helps understand which features drive predictions.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">sklearn models serialize to small pkl files and load in milliseconds — essential for fast pod startup in KServe.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-training-how">
+      <pre>import mlflow, mlflow.sklearn
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import numpy as np
+
+mlflow.set_tracking_uri("http://192.168.1.15:30500")
+mlflow.set_experiment("california-housing")
+
+with mlflow.start_run():
+    model = RandomForestRegressor(
+        n_estimators=100, max_depth=10, random_state=42
+    )
+    model.fit(X_train, y_train)
+    preds = model.predict(X_test)
+    
+    rmse = np.sqrt(mean_squared_error(y_test, preds))
+    r2   = r2_score(y_test, preds)
+    
+    mlflow.log_params({"n_estimators":100, "max_depth":10})
+    mlflow.log_metrics({"rmse": rmse, "r2": r2})
+    mlflow.sklearn.log_model(model, "model",
+        registered_model_name="best_random_forest_model")</pre>
+    </div>
+    <div class="dtc" id="dp-training-prereq">
+      <ul><li>MLFLOW_TRACKING_URI pointing to MLflow server</li><li>MLFLOW_S3_ENDPOINT_URL pointing to MinIO</li><li>AWS credentials for MinIO</li><li><code>pip install mlflow scikit-learn boto3</code></li><li>MLflow server running with PostgreSQL + MinIO backend</li></ul>
+    </div>
+  </div>
+
+  <!-- MLFLOW -->
+  <div class="dp" id="dp-mlflow">
+    <div class="dp-hdr"><div class="dp-ic">📋</div><div><div class="dp-title">MLflow — Experiment Tracking + Registry</div><div class="dp-sub">4-component ML lifecycle platform — your single source of truth for models</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-mlflow','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-mlflow','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-mlflow','how',this)">How Built</button>
+      <button class="dtab" onclick="showDTab('dp-mlflow','prereq',this)">Prerequisites</button>
+      <button class="dtab" onclick="showDTab('dp-mlflow','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-mlflow-what">
+      <h3>4 Components</h3>
+      <table><tr><th>Component</th><th>What It Does</th><th>Storage</th></tr>
+      <tr><td>Tracking Server</td><td>Logs params, metrics, tags per run</td><td>PostgreSQL</td></tr>
+      <tr><td>Artifact Store</td><td>Stores model files, plots, data</td><td>MinIO mlflow-artifacts</td></tr>
+      <tr><td>Model Registry</td><td>Versions + promotion stages</td><td>PostgreSQL + MinIO</td></tr>
+      <tr><td>Serving</td><td>Built-in HTTP (you replaced with KServe)</td><td>—</td></tr></table>
+      <h3>Model Registry Stages</h3>
+      <pre>None → Staging → Production → Archived
+
+None:       Just registered
+Staging:    Under evaluation
+Production: Serving traffic  ← your model is here
+Archived:   Retired, kept for history + rollback</pre>
+      <h3>Two-Client Problem (Your Stack)</h3>
+      <pre>Windows training machine (external):
+  MLFLOW_S3_ENDPOINT_URL=http://192.168.1.15:30900  ← NodePort
+
+KServe pod (internal K3s):
+  MLFLOW_S3_ENDPOINT_URL=http://minio.mlflow.svc.cluster.local:9000  ← DNS
+
+Same MinIO, different URLs. Use ConfigMap for internal, .env for Windows.</pre>
+    </div>
+    <div class="dtc" id="dp-mlflow-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need to know which model is serving right now and what it was trained on.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Without tracking, you can't compare runs — you don't know if today's model is better than last week's.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Model files need to be stored somewhere accessible to both training (Windows) and serving (K3s) — MinIO via MLflow solves this.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">The Registry provides a promotion workflow — models must pass quality gates before becoming Production.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">During incidents, you need to answer "what version is serving?" and "what were its metrics?" instantly — MLflow gives both in seconds.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-mlflow-how">
+      <pre># MLflow K3s deployment
+image: ghcr.io/mlflow/mlflow:v2.22.1  (burakince build)
+args:
+  - --backend-store-uri=postgresql://postgres.mlflow.svc.cluster.local/mlflow
+  - --default-artifact-root=s3://mlflow-artifacts
+  - --host=0.0.0.0 --port=5000
+
+env:
+  MLFLOW_S3_ENDPOINT_URL: http://minio.mlflow.svc.cluster.local:9000
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+
+NodePort: 30500  →  http://192.168.1.15:30500</pre>
+    </div>
+    <div class="dtc" id="dp-mlflow-prereq">
+      <ul><li>PostgreSQL pod running in mlflow namespace</li><li>MinIO <code>mlflow-artifacts</code> bucket created</li><li>K8s ServiceAccount with MinIO access</li><li><code>pip install mlflow boto3</code> on training machine</li></ul>
+    </div>
+    <div class="dtc" id="dp-mlflow-conn">
+      <table><tr><th>Connects To</th><th>Protocol</th><th>Purpose</th></tr>
+      <tr><td>PostgreSQL</td><td>psycopg2</td><td>Run metadata, metrics, registry stages</td></tr>
+      <tr><td>MinIO</td><td>boto3 S3</td><td>Model artifacts, plots</td></tr>
+      <tr><td>Training script</td><td>HTTP REST</td><td>Log runs, register models</td></tr>
+      <tr><td>KServe predictor</td><td>HTTP REST</td><td>Download model at pod startup</td></tr>
+      <tr><td>CI/CD quality gate</td><td>HTTP REST</td><td>Read latest run metrics</td></tr></table>
+    </div>
+  </div>
+
+  <!-- MINIO -->
+  <div class="dp" id="dp-minio">
+    <div class="dp-hdr"><div class="dp-ic">🪣</div><div><div class="dp-title">MinIO — S3-Compatible Object Storage</div><div class="dp-sub">On-premise S3 — same API, same boto3 code, swap endpoint to go cloud</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-minio','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-minio','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-minio','how',this)">Buckets</button>
+      <button class="dtab" onclick="showDTab('dp-minio','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-minio-what">
+      <h3>Object Storage vs Filesystem</h3>
+      <pre>Filesystem:       /home/rishi/models/rf_model.pkl
+  → hierarchical, OS managed, limited scale
+
+Object Storage:   bucket/key → binary blob
+  → flat namespace, petabyte scale, HTTP API
+  → s3://mlflow-artifacts/1/run_id/artifacts/model/model.pkl
+
+Why object storage for ML:
+  Model files: 100MB – 10GB  → filesystem doesn't scale
+  Parquet files: millions of them → S3 handles easily
+  Concurrent access: training + serving reading simultaneously
+  AWS S3 = 11 nines durability (99.999999999%)</pre>
+      <h3>Your 4 Buckets</h3>
+      <table><tr><th>Bucket</th><th>Owner</th><th>Contents</th><th>Lifecycle</th></tr>
+      <tr><td>mlflow-artifacts</td><td>MLflow</td><td>model.pkl, MLmodel, requirements</td><td>Keep forever</td></tr>
+      <tr><td>dvc-data</td><td>DVC</td><td>train/test parquet</td><td>Keep forever</td></tr>
+      <tr><td>predictions</td><td>Logger</td><td>batch_XXXX.parquet (50 rows each)</td><td>Delete after 90 days</td></tr>
+      <tr><td>evidently</td><td>Evidently UI</td><td>drift report JSON</td><td>Delete after 180 days</td></tr></table>
+    </div>
+    <div class="dtc" id="dp-minio-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need a place to store large ML artifacts accessible from multiple machines.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Model pkl files, training data, and prediction logs all need to be accessible from both Windows (training) and K3s (serving).</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">A shared filesystem wouldn't work across network boundaries — S3 API over HTTP works everywhere.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">MinIO implements the exact S3 API — the same boto3 code runs on-premise with MinIO and in the cloud with AWS S3.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Switching to cloud means changing one environment variable (endpoint URL) — zero code changes. This is production-grade portability.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-minio-how">
+      <pre>MinIO K3s deployment:
+  image: minio/minio:latest
+  command: server /data --console-address :9001
+  NodePort API:     30900  → http://192.168.1.15:30900
+  NodePort Console: 30901  → http://192.168.1.15:30901
+  Credentials:      minioadmin / minioadmin (change in production!)
+  Internal DNS:     http://minio.mlflow.svc.cluster.local:9000
+
+boto3 usage:
+  # External (Windows)
+  s3 = boto3.client("s3",
+    endpoint_url="http://192.168.1.15:30900",
+    aws_access_key_id="minioadmin",
+    aws_secret_access_key="minioadmin"
+  )
+  
+  # Internal (K3s pod)
+  s3 = boto3.client("s3",
+    endpoint_url="http://minio.mlflow.svc.cluster.local:9000",
+    aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+    aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+  )</pre>
+    </div>
+    <div class="dtc" id="dp-minio-conn">
+      <table><tr><th>Who Reads</th><th>Who Writes</th><th>Bucket</th></tr>
+      <tr><td>KServe predictor (model)</td><td>MLflow (training)</td><td>mlflow-artifacts</td></tr>
+      <tr><td>Evidently (reference)</td><td>DVC push</td><td>dvc-data</td></tr>
+      <tr><td>Evidently (current data)</td><td>FastAPI logger</td><td>predictions</td></tr>
+      <tr><td>Evidently UI</td><td>Evidently CronJob</td><td>evidently</td></tr></table>
+    </div>
+  </div>
+
+  <!-- KSERVE -->
+  <div class="dp" id="dp-kserve">
+    <div class="dp-hdr"><div class="dp-ic">⚡</div><div><div class="dp-title">KServe InferenceService</div><div class="dp-sub">Kubernetes-native ML model serving — autoscaling, canary, multi-framework</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-kserve','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-kserve','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-kserve','how',this)">YAML</button>
+      <button class="dtab" onclick="showDTab('dp-kserve','prereq',this)">Prerequisites</button>
+      <button class="dtab" onclick="showDTab('dp-kserve','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-kserve-what">
+      <h3>Deployment Modes</h3>
+      <table><tr><th>Mode</th><th>How</th><th>Pros</th><th>Cons</th></tr>
+      <tr><td>Serverless</td><td>KServe → Knative → Pod</td><td>Scale-to-zero, canary built-in</td><td>Needs Docker Hub image</td></tr>
+      <tr><td>RawDeployment</td><td>KServe → K8s Deployment</td><td>Works with local images</td><td>No auto scale-to-zero</td></tr></table>
+      <h3>Canary Deployment</h3>
+      <pre>spec:
+  predictor:
+    canaryTrafficPercent: 10   # 10% to new version
+    containers:
+      - image: rishikoy/mlops:predictor-v2
+
+# Promote: increase to 50, then remove field
+# Rollback instantly: set canaryTrafficPercent: 0</pre>
+    </div>
+    <div class="dtc" id="dp-kserve-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need ML-specific serving with canary deployments and traffic splitting.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">New model versions must go to 10% traffic first — full rollout without validation risks major business impact.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Building canary logic manually in raw K8s is complex and error-prone — KServe gives it via one YAML field.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">KServe is the Kubernetes standard for ML serving — skills transfer directly to Swiggy, Flipkart, Walmart.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Knative autoscaling means pods spin up under load and down when idle — cost-efficient at variable request rates.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-kserve-how">
+      <pre>apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: mlflow-model
+  namespace: ml
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    serviceAccountName: kserve-sa
+    containers:
+      - name: predictor
+        image: rishikoy/mlops:predictor-v1
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8080
+        envFrom:
+          - configMapRef: {name: predictor-config}
+          - secretRef:    {name: minio-creds}
+        readinessProbe:
+          httpGet: {path: /health, port: 8080}
+          initialDelaySeconds: 30
+        resources:
+          requests: {memory: 256Mi, cpu: 100m}
+          limits:   {memory: 512Mi, cpu: 500m}</pre>
+    </div>
+    <div class="dtc" id="dp-kserve-prereq">
+      <ul><li>Knative Serving installed</li><li>Kourier or Istio as network layer</li><li>cert-manager (Knative webhooks)</li><li>KServe CRDs installed</li><li>ServiceAccount with MinIO access</li><li>ConfigMap and Secret created first</li></ul>
+    </div>
+    <div class="dtc" id="dp-kserve-conn">
+      <table><tr><th>Connects To</th><th>How</th><th>Why</th></tr>
+      <tr><td>Docker Hub</td><td>imagePullPolicy: Always</td><td>Pulls container image</td></tr>
+      <tr><td>MLflow</td><td>HTTP via cluster DNS</td><td>Download model at startup</td></tr>
+      <tr><td>MinIO predictions</td><td>boto3</td><td>Write prediction logs</td></tr>
+      <tr><td>Kourier</td><td>Knative Route</td><td>External traffic routing</td></tr>
+      <tr><td>Prometheus</td><td>/metrics endpoint</td><td>Infra metrics scraping</td></tr></table>
+    </div>
+  </div>
+
+  <!-- FASTAPI -->
+  <div class="dp" id="dp-fastapi">
+    <div class="dp-hdr"><div class="dp-ic">🌐</div><div><div class="dp-title">FastAPI Custom Predictor</div><div class="dp-sub">main.py + logger.py — the serving code you own completely</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-fastapi','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-fastapi','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-fastapi','how',this)">Code Pattern</button>
+      <button class="dtab" onclick="showDTab('dp-fastapi','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-fastapi-what">
+      <h3>Request Lifecycle</h3>
+      <pre>POST /predict {"features": [8.32, 41.0, 6.98, 1.02, 322, 2.55, 37.88, -122.23]}
+  ↓ Pydantic validates: must be list of 8 floats
+  ↓ arr = np.array(features).reshape(1,-1)
+  ↓ prediction = model.predict(arr)[0]   ← in-RAM model, ~1ms
+  ↓ BackgroundTask: log_prediction(features, prediction)
+  ↓ Response: {"prediction": 4.336, "version": 1}   ← ~5ms total
+     [user never waits for MinIO write]
+         ↓ (after response sent)
+         logger accumulates in buffer
+         at 50 rows → parquet → MinIO   ← ~100ms, user unaffected</pre>
+      <h3>Why Background Tasks (Critical Interview Concept)</h3>
+      <table><tr><th>Without BackgroundTasks</th><th>With BackgroundTasks</th></tr>
+      <tr><td>predict [5ms] + MinIO write [100ms] = 105ms user wait</td><td>predict [5ms] = 5ms user wait. MinIO write happens after.</td></tr></table>
+    </div>
+    <div class="dtc" id="dp-fastapi-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need to log every prediction for drift detection.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">The built-in sklearn runtime is a black box — we can't inject logging into it.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Evidently needs prediction logs to compare against training reference data.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Without prediction logs, we can't detect if the model is receiving unusual or drifted inputs.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Silent data drift without detection leads to business decisions made on wrong predictions — discovered only when it's too late.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-fastapi-how">
+      <pre># main.py pattern
+@asynccontextmanager
+async def lifespan(app):
+    model = mlflow.sklearn.load_model("models:/best_random_forest_model/1")
+    app.state.model = model
+    yield
+    force_flush()   # save remaining predictions on shutdown
+
+app = FastAPI(lifespan=lifespan)
+
+@app.post("/predict")
+async def predict(req: PredictRequest, bt: BackgroundTasks):
+    arr = np.array(req.features).reshape(1,-1)
+    pred = app.state.model.predict(arr)[0]
+    bt.add_task(log_prediction, req.features, float(pred))
+    return {"prediction": pred}
+
+# logger.py pattern  
+buffer = []
+lock = threading.Lock()
+
+def log_prediction(features, prediction):
+    with lock:
+        buffer.append({**dict(zip(FEATURES, features)),
+                       "prediction": prediction,
+                       "timestamp": datetime.utcnow().isoformat()})
+        if len(buffer) >= 50:
+            _flush()   # → parquet → MinIO</pre>
+    </div>
+    <div class="dtc" id="dp-fastapi-conn">
+      <table><tr><th>Connects To</th><th>When</th><th>What</th></tr>
+      <tr><td>MLflow</td><td>Pod startup (once)</td><td>Download model pkl</td></tr>
+      <tr><td>MinIO predictions</td><td>Every 50 requests (async)</td><td>Write prediction parquet</td></tr>
+      <tr><td>Kourier</td><td>Every request</td><td>Receive incoming traffic</td></tr>
+      <tr><td>Prometheus</td><td>Every 30s scrape</td><td>Expose /metrics</td></tr></table>
+    </div>
+  </div>
+
+  <!-- KOURIER -->
+  <div class="dp" id="dp-kourier">
+    <div class="dp-hdr"><div class="dp-ic">🔀</div><div><div class="dp-title">Kourier — Knative Ingress Gateway</div><div class="dp-sub">Routes external traffic to KServe pods by Host header</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-kourier','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-kourier','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-kourier','how',this)">How It Routes</button>
+    </div>
+    <div class="dtc on" id="dp-kourier-what">
+      <h3>What Kourier Does</h3>
+      <p>Kourier is a lightweight Envoy-based ingress gateway designed specifically for Knative. It receives all inbound traffic at the LoadBalancer IP and routes it to the correct Knative Revision based on the HTTP Host header.</p>
+      <pre>Request flow:
+  Client → DNS (Pi-hole) → 192.168.1.240 (Kourier)
+  Kourier reads Host: mlflow-model-predictor.ml.ml.local
+  Looks up Knative Route for this hostname
+  Forwards to: mlflow-model-predictor-00001-private service
+  Pod receives request on port 8080 (queue-proxy sidecar first)</pre>
+      <h3>Kourier vs Traefik (both running in your stack)</h3>
+      <table><tr><th>Component</th><th>IP</th><th>Routes</th></tr>
+      <tr><td>Kourier</td><td>192.168.1.240</td><td>KServe/Knative services (*.ml.ml.local)</td></tr>
+      <tr><td>Traefik</td><td>192.168.1.241</td><td>Everything else (grafana, prometheus, evidently)</td></tr></table>
+    </div>
+    <div class="dtc" id="dp-kourier-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">Knative needs a network layer to route traffic to the correct service revision.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Standard K8s ingress (Nginx/Traefik) doesn't understand Knative routing concepts like traffic splits and revisions.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Kourier is the lightest option — just Envoy proxy, no extra control plane. Istio would work too but adds significant overhead.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Canary deployments work via Kourier's traffic weight routing — 10% to revision-v2, 90% to revision-v1.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">MetalLB gives Kourier a real LoadBalancer IP (192.168.1.240) — on-premise equivalent of cloud LoadBalancer.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-kourier-how">
+      <pre>DNS resolution:
+  mlflow-model-predictor.ml.ml.local → 192.168.1.240 (Kourier)
+  (configured in Pi-hole dnsmasq wildcard: *.ml.ml.local → 192.168.1.240)
+
+Kourier routing table (managed by Knative):
+  Host: mlflow-model-predictor.ml.ml.local
+    → 100% to: mlflow-model-predictor-00001-private:80
+
+For canary (managed automatically):
+  Host: mlflow-model-predictor.ml.ml.local
+    → 10% to revision-00002-private:80
+    → 90% to revision-00001-private:80
+
+Check routes:
+  kubectl get route -n ml
+  kubectl get kingress -n ml</pre>
+    </div>
+  </div>
+
+  <!-- CLIENT -->
+  <div class="dp" id="dp-client">
+    <div class="dp-hdr"><div class="dp-ic">💻</div><div><div class="dp-title">Client — How to Query the Model</div><div class="dp-sub">curl, Python requests, or any HTTP client</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-client','what',this)">Endpoints</button>
+      <button class="dtab" onclick="showDTab('dp-client','how',this)">curl Examples</button>
+      <button class="dtab" onclick="showDTab('dp-client','python',this)">Python Script</button>
+    </div>
+    <div class="dtc on" id="dp-client-what">
+      <h3>Available Endpoints</h3>
+      <table><tr><th>Endpoint</th><th>Method</th><th>Purpose</th><th>Response</th></tr>
+      <tr><td>/health</td><td>GET</td><td>K8s readiness probe</td><td>{"status":"healthy","model_loaded":true}</td></tr>
+      <tr><td>/predict</td><td>POST</td><td>Get house price prediction</td><td>{"prediction":4.336,"model":"best_random_forest_model","version":1}</td></tr>
+      <tr><td>/metrics</td><td>GET</td><td>Prometheus scrape</td><td>Prometheus text format</td></tr></table>
+      <h3>Base URL</h3>
+      <pre>http://mlflow-model-predictor.ml.ml.local</pre>
+    </div>
+    <div class="dtc" id="dp-client-how">
+      <pre># Health check
+curl http://mlflow-model-predictor.ml.ml.local/health
+
+# Single prediction
+curl -X POST http://mlflow-model-predictor.ml.ml.local/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": [8.3252, 41.0, 6.9841, 1.0238, 322.0, 2.5556, 37.88, -122.23]}'
+
+# Expected response
+{"prediction": 4.336, "model": "best_random_forest_model", "version": 1}</pre>
+    </div>
+    <div class="dtc" id="dp-client-python">
+      <pre>import requests, random
+
+url = "http://mlflow-model-predictor.ml.ml.local/predict"
+
+# Send 60 VARIED predictions (important for drift detection!)
+for i in range(60):
+    features = [
+        round(random.uniform(0.5,  15.0), 4),   # MedInc
+        round(random.uniform(1.0,  52.0), 1),    # HouseAge
+        round(random.uniform(3.0,  10.0), 4),    # AveRooms
+        round(random.uniform(0.8,   1.5), 4),    # AveBedrms
+        round(random.uniform(100, 3000),  1),    # Population
+        round(random.uniform(1.5,   5.0), 4),    # AveOccup
+        round(random.uniform(32.0,  42.0), 2),   # Latitude
+        round(random.uniform(-124, -114),  2),   # Longitude
+    ]
+    r = requests.post(url, json={"features": features})
+    print(f"{i+1:3d}: {r.json()['prediction']:.3f}")</pre>
+    </div>
+  </div>
+
+  <!-- LOGGER -->
+  <div class="dp" id="dp-logger">
+    <div class="dp-hdr"><div class="dp-ic">📝</div><div><div class="dp-title">Prediction Logger (logger.py)</div><div class="dp-sub">Thread-safe async batch writer — captures every prediction without blocking users</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-logger','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-logger','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-logger','how',this)">Code</button>
+      <button class="dtab" onclick="showDTab('dp-logger','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-logger-what">
+      <h3>Internal Flow</h3>
+      <pre>Request → predict() → response returned → BackgroundTask fires
+                                                ↓
+                                 log_prediction(features, prediction)
+                                                ↓
+                                 with lock:  buffer.append(row)
+                                             if len >= 50: _flush()
+                                                ↓ (at 50 rows)
+                                 DataFrame → parquet (in-memory BytesIO)
+                                 → MinIO PUT predictions/model/v1/date/batch_N.parquet</pre>
+      <h3>Why Threading Lock</h3>
+      <pre>FastAPI can handle concurrent requests with multiple threads.
+Two requests arriving simultaneously can corrupt the buffer:
+  Thread-1: buffer.append(row_A)  ←  race condition
+  Thread-2: buffer.append(row_B)  ←  data corruption!
+
+with threading.Lock():
+  Only one thread modifies buffer at a time → safe.</pre>
+    </div>
+    <div class="dtc" id="dp-logger-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need a record of every prediction for drift detection and model monitoring.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Drift detection requires comparing production data distribution to training data distribution.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Without prediction logs, Evidently has no production data to compare against reference.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">We batch 50 rows instead of writing per-request to reduce MinIO PUT operations by 50x and avoid adding latency.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Prediction logs are the audit trail — in regulated industries, every prediction must be provable. Parquet in S3 is queryable forever.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-logger-how">
+      <pre>BATCH_SIZE = 50
+FEATURES = ["MedInc","HouseAge","AveRooms","AveBedrms",
+            "Population","AveOccup","Latitude","Longitude"]
+buffer = []
+lock = threading.Lock()
+
+def log_prediction(features, prediction):
+    row = dict(zip(FEATURES, features))
+    row.update({"prediction": prediction,
+                "timestamp":  datetime.utcnow().isoformat(),
+                "model_version": "1"})
+    with lock:
+        buffer.append(row)
+        if len(buffer) >= BATCH_SIZE:
+            _flush()
+
+def _flush():
+    if not buffer: return
+    df  = pd.DataFrame(buffer)
+    buf = io.BytesIO()
+    df.to_parquet(buf, index=False)
+    buf.seek(0)
+    key = f"predictions/mlflow-model/v1/{date.today()}/batch_{counter}.parquet"
+    s3.put_object(Bucket="predictions", Key=key, Body=buf.getvalue())
+    buffer.clear()</pre>
+    </div>
+    <div class="dtc" id="dp-logger-conn">
+      <table><tr><th>Connects To</th><th>When</th><th>What</th></tr>
+      <tr><td>MinIO predictions bucket</td><td>Every 50 requests</td><td>Write prediction parquet file</td></tr>
+      <tr><td>Evidently CronJob</td><td>Indirectly — reads same files</td><td>Parquet files are the monitoring bridge</td></tr></table>
+    </div>
+  </div>
+
+  <!-- PREDICTIONS BUCKET -->
+  <div class="dp" id="dp-predsbkt">
+    <div class="dp-hdr"><div class="dp-ic">📁</div><div><div class="dp-title">Predictions Bucket (MinIO)</div><div class="dp-sub">Stores all prediction logs as partitioned parquet — bridge between serving and monitoring</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-predsbkt','what',this)">Structure</button>
+      <button class="dtab" onclick="showDTab('dp-predsbkt','why',this)">Why Parquet</button>
+      <button class="dtab" onclick="showDTab('dp-predsbkt','how',this)">Lifecycle</button>
+    </div>
+    <div class="dtc on" id="dp-predsbkt-what">
+      <h3>Bucket Structure</h3>
+      <pre>predictions/                          ← bucket
+  mlflow-model/                       ← INFERENCE_SERVICE_NAME
+    v1/                               ← MODEL_VERSION
+      2026-04-13/                     ← date partition
+        batch_0001.parquet            ← 50 rows
+        batch_0002.parquet            ← 50 rows
+        batch_0003.parquet
+      2026-04-14/
+        batch_0001.parquet
+
+One parquet file schema:
+  MedInc, HouseAge, AveRooms, AveBedrms,
+  Population, AveOccup, Latitude, Longitude,
+  prediction, timestamp, model_version, inference_service</pre>
+      <h3>How Evidently Reads It</h3>
+      <pre># Read ALL today's predictions
+import boto3, pandas as pd, io
+s3 = boto3.client(...)
+prefix = f"predictions/mlflow-model/v1/{today}/"
+objects = s3.list_objects_v2(Bucket="predictions", Prefix=prefix)
+dfs = []
+for obj in objects.get("Contents", []):
+    data = s3.get_object(Bucket="predictions", Key=obj["Key"])["Body"].read()
+    dfs.append(pd.read_parquet(io.BytesIO(data)))
+current_data = pd.concat(dfs)</pre>
+    </div>
+    <div class="dtc" id="dp-predsbkt-why">
+      <h3>Why Parquet?</h3>
+      <table><tr><th>Format</th><th>Size (1000 rows)</th><th>Read Speed</th><th>Schema</th></tr>
+      <tr><td>CSV</td><td>~150KB</td><td>Slow (parse text)</td><td>No types</td></tr>
+      <tr><td>JSON</td><td>~300KB</td><td>Slow (parse text)</td><td>No types</td></tr>
+      <tr><td>Parquet</td><td>~15KB</td><td>Fast (columnar)</td><td>Typed + compressed</td></tr></table>
+      <p>Parquet is columnar — reading only the "MedInc" column for drift detection reads only that column from disk, not all 12 columns.</p>
+    </div>
+    <div class="dtc" id="dp-predsbkt-how">
+      <h3>Lifecycle Policy (Cost Control)</h3>
+      <pre># Via MinIO Console: Bucket → Management → Lifecycle
+# Or mc CLI:
+mc ilm add local/predictions --expiry-days 90
+
+# Why 90 days:
+  Drift detection uses last 7-30 days of predictions
+  Older data has diminishing value
+  Unbounded growth = unbounded storage cost
+  At 50 rows × 10 batches/hour × 24h = 12,000 rows/day
+  90 days = 1,080,000 rows → ~100MB parquet (manageable)</pre>
+    </div>
+  </div>
+
+  <!-- EVIDENTLY -->
+  <div class="dp" id="dp-evidently">
+    <div class="dp-hdr"><div class="dp-ic">🧪</div><div><div class="dp-title">Evidently — Drift Detection Engine</div><div class="dp-sub">CronJob compares production predictions vs training reference, generates reports + Prometheus metrics</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-evidently','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-evidently','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-evidently','how',this)">Code</button>
+      <button class="dtab" onclick="showDTab('dp-evidently','prereq',this)">Prerequisites</button>
+      <button class="dtab" onclick="showDTab('dp-evidently','conn',this)">Connections</button>
+    </div>
+    <div class="dtc on" id="dp-evidently-what">
+      <h3>What It Does</h3>
+      <pre>Input 1: Reference  → dvc-data/.../train.parquet  (16,512 rows, training distribution)
+Input 2: Current    → predictions/.../batch_*.parquet (today's production rows)
+
+Evidently runs statistical tests:
+  DataDriftPreset:   PSI + KS test per feature
+  ValueDrift:        per-column drift score
+
+Output A → Evidently UI:   Full interactive HTML report (for data scientists)
+Output B → Pushgateway:    Summary metrics (for ops/Grafana/alerts)
+
+Metrics pushed:
+  ml_drift_detected{job="evidently"}     = 0 or 1
+  ml_drift_share{job="evidently"}        = 0.0 to 1.0 (% of features drifted)
+  ml_feature_drift_score{feature="X"}   = PSI value per feature
+  ml_prediction_mean                     = mean of today's predictions
+  ml_prediction_std                      = std of today's predictions</pre>
+    </div>
+    <div class="dtc" id="dp-evidently-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need to know if production data has drifted from training data.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">A model trained on distribution A will give wrong predictions on distribution B, often silently.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Data drift can happen gradually — no errors, no crashes, just slowly degrading accuracy that nobody notices until business KPIs suffer.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Building PSI calculations and KS tests from scratch takes weeks — Evidently gives them in 5 lines of code.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Evidently integrates with Prometheus natively — drift metrics appear in the same Grafana dashboards as infra metrics, giving one unified view.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-evidently-how">
+      <pre># Correct imports for evidently==0.7.21
+from evidently import Report
+from evidently.presets import DataDriftPreset
+from evidently.metrics import ValueDrift
+from evidently.ui.workspace.remote import RemoteWorkspace
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+
+report = Report(metrics=[DataDriftPreset()])
+report.run(reference_data=ref_df, current_data=cur_df)
+
+result = report.as_dict()
+drift_detected = result["metrics"][0]["result"]["dataset_drift"]
+drift_share    = result["metrics"][0]["result"]["share_of_drifted_columns"]
+
+# Push to Prometheus Pushgateway
+reg = CollectorRegistry()
+Gauge("ml_drift_detected","",registry=reg).set(int(drift_detected))
+Gauge("ml_drift_share","",registry=reg).set(drift_share)
+push_to_gateway("http://pushgateway.monitoring.svc.cluster.local:9091",
+                job="evidently_mlflow-model", registry=reg)</pre>
+    </div>
+    <div class="dtc" id="dp-evidently-prereq">
+      <ul><li>MinIO predictions bucket with ≥50 varied predictions</li><li>MinIO dvc-data with train.parquet reference</li><li>Prometheus Pushgateway deployed</li><li>Evidently UI pod running</li><li>Docker image with <code>evidently==0.7.21</code></li></ul>
+    </div>
+    <div class="dtc" id="dp-evidently-conn">
+      <table><tr><th>Connects To</th><th>R/W</th><th>What</th></tr>
+      <tr><td>MinIO dvc-data</td><td>Read</td><td>Training reference data</td></tr>
+      <tr><td>MinIO predictions</td><td>Read</td><td>Today's prediction logs</td></tr>
+      <tr><td>Evidently UI pod</td><td>Write (HTTP)</td><td>Full drift report</td></tr>
+      <tr><td>Prometheus Pushgateway</td><td>Write (HTTP)</td><td>Summary metrics</td></tr></table>
+    </div>
+  </div>
+
+  <!-- PUSHGATEWAY -->
+  <div class="dp" id="dp-pushgw">
+    <div class="dp-hdr"><div class="dp-ic">📡</div><div><div class="dp-title">Prometheus Pushgateway</div><div class="dp-sub">Buffer for short-lived job metrics — bridges CronJobs to Prometheus scraping model</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-pushgw','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-pushgw','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-pushgw','how',this)">How It Works</button>
+    </div>
+    <div class="dtc on" id="dp-pushgw-what">
+      <h3>The Problem It Solves</h3>
+      <pre>Prometheus works by PULLING metrics from running services every 30s.
+But Evidently CronJob:
+  → runs for 30 seconds
+  → calculates drift
+  → exits (pod is gone)
+  
+Prometheus can't scrape a pod that no longer exists.
+
+Solution: Pushgateway
+  CronJob pushes metrics to Pushgateway BEFORE exiting.
+  Pushgateway stays running → Prometheus scrapes Pushgateway.
+  
+  Evidently CronJob → PUSH → Pushgateway (persistent)
+                                  ↑
+                          Prometheus PULLS every 30s</pre>
+      <div class="box bx-y"><div class="bt">⚠ Important Rule</div>Pushgateway is ONLY for short-lived batch jobs. Never use it for long-running services. Values persist after job exits — if the service crashes, stale metrics still show last known value.</div>
+    </div>
+    <div class="dtc" id="dp-pushgw-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">Drift detection runs as an hourly CronJob (pod runs and exits).</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Prometheus can't scrape a pod that doesn't exist anymore.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">We need drift metrics in Prometheus so they appear alongside infra metrics in Grafana.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Unified Grafana dashboard (infra + drift + performance) is the goal — all data must flow through Prometheus.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">One alert system (Grafana AlertManager) covering both infra and ML metrics reduces operational complexity.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-pushgw-how">
+      <pre>Deployment:
+  Namespace: monitoring
+  Internal URL: http://pushgateway.monitoring.svc.cluster.local:9091
+  ServiceMonitor configured → Prometheus auto-scrapes
+
+Push from Python:
+  from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+  registry = CollectorRegistry()
+  Gauge("ml_drift_detected","Drift flag",registry=registry).set(1)
+  push_to_gateway("http://pushgateway...:9091",
+                  job="evidently_mlflow-model", registry=registry)
+
+Verify pushed metrics:
+  kubectl port-forward svc/pushgateway 9091:9091 -n monitoring
+  curl http://localhost:9091/metrics | grep ml_drift
+
+Query in Grafana:
+  ml_drift_detected
+  ml_drift_share
+  ml_feature_drift_score{feature="MedInc"}</pre>
+    </div>
+  </div>
+
+  <!-- PROMETHEUS -->
+  <div class="dp" id="dp-prometheus">
+    <div class="dp-hdr"><div class="dp-ic">🔥</div><div><div class="dp-title">Prometheus — Metrics Time Series Database</div><div class="dp-sub">Pull-based scraping, PromQL queries, AlertManager — the monitoring backbone</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-prometheus','what',this)">What</button>
+      <button class="dtab" onclick="showDTab('dp-prometheus','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-prometheus','how',this)">PromQL</button>
+      <button class="dtab" onclick="showDTab('dp-prometheus','conn',this)">What It Scrapes</button>
+    </div>
+    <div class="dtc on" id="dp-prometheus-what">
+      <h3>The 4 Metric Types</h3>
+      <table><tr><th>Type</th><th>What</th><th>Example</th><th>Use For</th></tr>
+      <tr><td>Counter</td><td>Only goes up</td><td>requests_total</td><td>Request count, errors</td></tr>
+      <tr><td>Gauge</td><td>Goes up and down</td><td>ml_drift_detected, memory_bytes</td><td>Current values</td></tr>
+      <tr><td>Histogram</td><td>Distribution in buckets</td><td>latency_seconds_bucket</td><td>Latency percentiles</td></tr>
+      <tr><td>Summary</td><td>Pre-calculated quantiles</td><td>p50, p95, p99</td><td>Latency summaries</td></tr></table>
+      <h3>Pull Model Explained</h3>
+      <pre>Every 30 seconds:
+  Prometheus → GET http://kserve-pod:8080/metrics → parse text → store in TSDB
+  Prometheus → GET http://pushgateway:9091/metrics → parse → store
+
+ServiceMonitor (CRD) tells Prometheus which pods to scrape:
+  spec.selector.matchLabels: app=mlflow-model
+  → Prometheus finds all pods with this label and scrapes them</pre>
+    </div>
+    <div class="dtc" id="dp-prometheus-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">We need to track request rate, latency, errors, and ML drift metrics over time.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Without time series metrics, you only find problems when users complain — monitoring gives early warning.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">ML degradation is gradual — RMSE rises by 0.01 per week — you need time series to spot trends.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">Prometheus is the K8s standard — every K8s component exposes Prometheus metrics natively.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Prometheus + Grafana + AlertManager = unified observability for both infra and ML with one toolchain.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-prometheus-how">
+      <pre># Request rate per second (5min window)
+rate(http_requests_total{endpoint="/predict"}[5m])
+
+# P99 latency
+histogram_quantile(0.99,
+  rate(request_latency_seconds_bucket{endpoint="/predict"}[5m]))
+
+# Error rate %
+rate(http_requests_total{status=~"5.."}[5m]) /
+rate(http_requests_total[5m]) * 100
+
+# Drift metrics (from Evidently via Pushgateway)
+ml_drift_detected
+ml_drift_share
+ml_feature_drift_score{feature="MedInc"}
+
+# Pod memory growing (memory leak check)
+container_memory_working_set_bytes{container="predictor"}</pre>
+    </div>
+    <div class="dtc" id="dp-prometheus-conn">
+      <table><tr><th>Scrapes From</th><th>Metrics</th></tr>
+      <tr><td>KServe predictor /metrics</td><td>Request count, latency histogram, errors</td></tr>
+      <tr><td>Prometheus Pushgateway</td><td>ml_drift_detected, ml_drift_share, ml_feature_drift_score</td></tr>
+      <tr><td>node-exporter</td><td>CPU, memory, disk, network per host</td></tr>
+      <tr><td>kube-state-metrics</td><td>Pod status, deployment replicas, job status</td></tr></table>
+    </div>
+  </div>
+
+  <!-- GRAFANA -->
+  <div class="dp" id="dp-grafana">
+    <div class="dp-hdr"><div class="dp-ic">📊</div><div><div class="dp-title">Grafana — Visualization & Alerting</div><div class="dp-sub">Queries Prometheus via PromQL, renders dashboards, sends alerts</div></div></div>
+    <div class="dtabs">
+      <button class="dtab on" onclick="showDTab('dp-grafana','what',this)">Dashboards</button>
+      <button class="dtab" onclick="showDTab('dp-grafana','why',this)">5 Whys</button>
+      <button class="dtab" onclick="showDTab('dp-grafana','how',this)">Alert Rules</button>
+    </div>
+    <div class="dtc on" id="dp-grafana-what">
+      <h3>3 Dashboards To Build</h3>
+      <h4>Dashboard 1 — ML Drift Overview</h4>
+      <table><tr><th>Panel</th><th>PromQL</th><th>Viz</th><th>Alert When</th></tr>
+      <tr><td>Drift Detected</td><td>ml_drift_detected</td><td>Stat (Red/Green)</td><td>= 1 for 5min</td></tr>
+      <tr><td>Drift Share %</td><td>ml_drift_share * 100</td><td>Gauge 0-100</td><td>&gt; 30%</td></tr>
+      <tr><td>Prediction Mean</td><td>ml_prediction_mean</td><td>Time series</td><td>Shifts &gt; 2σ</td></tr>
+      <tr><td>Prediction Std</td><td>ml_prediction_std</td><td>Time series</td><td>Drops near 0</td></tr></table>
+      <h4>Dashboard 2 — Per Feature Drift</h4>
+      <table><tr><th>Panel</th><th>PromQL</th></tr>
+      <tr><td>MedInc PSI</td><td>ml_feature_drift_score{feature="MedInc"}</td></tr>
+      <tr><td>All features bar chart</td><td>ml_feature_drift_score</td></tr></table>
+      <h4>Dashboard 3 — Serving Health</h4>
+      <table><tr><th>Panel</th><th>PromQL</th></tr>
+      <tr><td>Request rate</td><td>rate(http_requests_total[5m])</td></tr>
+      <tr><td>P99 latency</td><td>histogram_quantile(0.99, rate(latency_bucket[5m]))</td></tr>
+      <tr><td>Error rate</td><td>rate(errors[5m])/rate(total[5m])*100</td></tr></table>
+      <pre>URL: http://grafana.route.ml.local
+     (routed via Traefik at 192.168.1.241)</pre>
+    </div>
+    <div class="dtc" id="dp-grafana-why">
+      <div class="whys">
+        <div class="why"><div class="why-n">WHY 1</div><div class="why-t">Prometheus stores metrics but has no good visualization — just raw PromQL results.</div></div>
+        <div class="why"><div class="why-n">WHY 2</div><div class="why-t">Humans understand trends from graphs, not tables of numbers — Grafana turns TSDB data into actionable visuals.</div></div>
+        <div class="why"><div class="why-n">WHY 3</div><div class="why-t">Alerts in Grafana (or AlertManager) send notifications before issues become incidents.</div></div>
+        <div class="why"><div class="why-n">WHY 4</div><div class="why-t">One unified dashboard for both infra metrics (KServe pod CPU) and ML metrics (drift score) gives on-call engineers one place to look.</div></div>
+        <div class="why"><div class="why-n">WHY 5</div><div class="why-t">Interview demo — showing a live Grafana dashboard with real drift metrics and serving stats is more compelling than any verbal explanation.</div></div>
+      </div>
+    </div>
+    <div class="dtc" id="dp-grafana-how">
+      <pre># Alert rule: Drift detected
+Name: DriftDetected
+Condition: ml_drift_detected == 1
+Duration: 5m (must be true for 5 mins)
+Severity: Warning
+Message: "Model drift detected. Check Evidently UI for details."
+Notify: Slack / Email
+
+# Alert rule: High latency
+Name: HighLatency
+Condition: histogram_quantile(0.99, rate(latency_bucket[5m])) > 0.5
+Duration: 5m
+Severity: Critical
+Message: "P99 latency > 500ms for 5 minutes"
+
+# Alert rule: Zero predictions (traffic stopped)
+Name: NoPredictions
+Condition: rate(http_requests_total[10m]) == 0
+Duration: 10m
+Severity: Critical</pre>
+    </div>
+  </div>
+
+</div><!-- /subp arch-full -->
+
+<!-- SUBPAGE: TRAINING FLOW -->
+<div class="subp" id="arch-train">
+  <h1><span class="tag">Architecture · Training</span>Training Flow — Step by Step</h1>
+  <p class="lead">How raw data becomes a registered model ready for deployment.</p>
+  <pre>
+TRAINING FLOW
+
+Step 1: Pull data
+  git checkout v1.0 && dvc pull
+  → downloads train.parquet from MinIO dvc-data bucket
+
+Step 2: Configure MLflow
+  mlflow.set_tracking_uri("http://192.168.1.15:30500")
+  mlflow.set_experiment("california-housing")
+
+Step 3: Train inside mlflow run context
+  with mlflow.start_run():
+      model = RandomForestRegressor(n_estimators=100, max_depth=10)
+      model.fit(X_train, y_train)
+      preds = model.predict(X_test)
+
+Step 4: Calculate + log metrics
+  rmse = √mean((y_test - preds)²)  → mlflow.log_metric("rmse", rmse)
+  r2   = r2_score(y_test, preds)   → mlflow.log_metric("r2", r2)
+  mlflow.log_params({"n_estimators":100, "max_depth":10})
+  → stored in PostgreSQL
+
+Step 5: Log model artifact
+  mlflow.sklearn.log_model(model, "model")
+  → model.pkl serialized → uploaded to MinIO
+  → path: s3://mlflow-artifacts/1/{run_id}/artifacts/model/
+
+Step 6: Register in Model Registry
+  mlflow.register_model(model_uri, "best_random_forest_model")
+  → Version 1 created, Stage: None
+  → Metadata in PostgreSQL: name, version, run_id, artifact_path
+
+Step 7: Quality gate (CI/CD)
+  read latest run metrics from MLflow API
+  if r2 < 0.80: sys.exit(1) → deployment blocked
+  if rmse > 0.60: sys.exit(1) → deployment blocked
+  if passes: continue to deployment
+
+Step 8: KServe pod loads model
+  InferenceService applied
+  Pod starts → lifespan() runs
+  mlflow.sklearn.load_model("models:/best_random_forest_model/1")
+  → MLflow resolves artifact path from PostgreSQL
+  → Downloads pkl from MinIO
+  → sklearn loads model into RAM
+  → /health returns 200 OK → ready to serve</pre>
+</div>
+
+<!-- SUBPAGE: SERVING FLOW -->
+<div class="subp" id="arch-serve">
+  <h1><span class="tag">Architecture · Serving</span>Serving Flow — Single Request Lifecycle</h1>
+  <p class="lead">What happens from client curl to prediction response in ~5ms.</p>
+  <pre>
+SERVING FLOW — ONE REQUEST
+
+Client:
+  curl -X POST http://mlflow-model-predictor.ml.ml.local/predict
+       -d '{"features": [8.3252, 41.0, 6.98, 1.02, 322.0, 2.55, 37.88, -122.23]}'
+
+Step 1: DNS Resolution
+  mlflow-model-predictor.ml.ml.local
+  → Pi-hole dnsmasq wildcard *.ml.ml.local
+  → resolves to 192.168.1.240 (Kourier LoadBalancer IP)
+
+Step 2: Kourier Routing
+  Request arrives at Kourier port 80
+  Reads Host header: mlflow-model-predictor.ml.ml.local
+  Looks up Knative Route for this hostname
+  Forwards to: mlflow-model-predictor-00001-private:80
+
+Step 3: Queue-Proxy Sidecar
+  First container in pod (injected by Knative)
+  Handles: autoscaling signals, concurrency limits, metrics
+  Forwards to main predictor container at port 8080
+
+Step 4: FastAPI Predictor
+  Receives POST /predict
+  Pydantic validates: features must be list of 8 numbers
+  arr = np.array(features).reshape(1, -1)
+  prediction = model.predict(arr)[0]    ← in-RAM RandomForest, ~1ms
+  Registers BackgroundTask: log_prediction(features, pred)
+  Returns: {"prediction": 4.336, "model": "...", "version": 1}
+
+Step 5: Response travels back
+  FastAPI → Queue-Proxy → Kourier → DNS → Client
+  Total time: ~5–15ms
+
+Step 6: Background (AFTER response sent, user doesn't wait)
+  logger.log_prediction(features=[8.3252,...], prediction=4.336)
+  Appends row to in-memory buffer (thread-safe)
+  If buffer ≥ 50: convert to parquet → write to MinIO (100ms)
+  User never sees this delay.</pre>
+</div>
+
+<!-- SUBPAGE: MONITORING FLOW -->
+<div class="subp" id="arch-monitor">
+  <h1><span class="tag">Architecture · Monitoring</span>Monitoring Flow — Two Parallel Pipelines</h1>
+  <pre>
+PIPELINE 1: Infrastructure Metrics (Real-time, every 30s)
+
+  KServe predictor pod exposes /metrics endpoint (Prometheus format)
+         ↓
+  ServiceMonitor tells Prometheus: scrape pods with label app=mlflow-model
+         ↓
+  Prometheus scrapes every 30s, stores in TSDB:
+    http_requests_total, request_latency_seconds, container_cpu_usage
+         ↓
+  Grafana "Serving Health" dashboard queries via PromQL
+         ↓
+  AlertManager sends Slack/email if error rate > 5% for 5 minutes
+
+───────────────────────────────────────────────────────────
+
+PIPELINE 2: ML Drift Metrics (Hourly, batch)
+
+  Every hour: K3s CronJob creates an evidently-drift-check pod
+         ↓
+  drift_check.py runs inside pod:
+    1. Read reference data: dvc-data/.../train.parquet (16,512 rows)
+    2. Read today's predictions: predictions/.../batch_*.parquet
+    3. Merge prediction parquet files into single DataFrame
+    4. Evidently DataDriftPreset: PSI + KS test per feature
+    5. Extract: drift_detected, drift_share, per-feature PSI scores
+         ↓ (two outputs simultaneously)
+  Output A: Full report → Evidently UI RemoteWorkspace API
+    → viewable at http://evidently.route.ml.local
+    → interactive drill-down per feature
+  Output B: Summary metrics → Prometheus Pushgateway HTTP POST
+    → ml_drift_detected, ml_drift_share, ml_feature_drift_score
+         ↓
+  Pod exits (CronJob complete)
+         ↓
+  Prometheus scrapes Pushgateway every 30s (metrics persist there)
+         ↓
+  Grafana "ML Drift" dashboard shows drift trends over time
+         ↓
+  Alert fires if ml_drift_detected == 1 for more than 5 minutes</pre>
+</div>
+
+<!-- SUBPAGE: CICD FLOW -->
+<div class="subp" id="arch-cicd">
+  <h1><span class="tag">Architecture · CI/CD</span>CI/CD Pipeline — Code Push to Production</h1>
+  <pre>
+CI/CD FLOW — GITHUB ACTIONS (self-hosted runner on Windows)
+
+Trigger: push to main branch touching train.py or requirements.txt
+         OR: manual workflow_dispatch
+
+Step 1: Checkout
+  actions/checkout@v4
+  Gets latest code from GitHub
+
+Step 2: Setup Python
+  actions/setup-python@v5, python-version: '3.11'
+  pip install -r requirements.txt
+
+Step 3: Train Model
+  python train.py
+  Environment variables:
+    MLFLOW_TRACKING_URI=http://192.168.1.15:30500
+    MLFLOW_S3_ENDPOINT_URL=http://192.168.1.15:30900
+    AWS_ACCESS_KEY_ID=${{ secrets.MINIO_KEY }}
+    AWS_SECRET_ACCESS_KEY=${{ secrets.MINIO_SECRET }}
+  → Trains model, logs to MLflow, registers in Registry
+
+Step 4: Quality Gate (MUST PASS)
+  python quality_gate.py
+  → reads latest run metrics from MLflow
+  → if R2 < 0.80:    sys.exit(1) → pipeline FAILS, no deploy
+  → if RMSE > 0.60:  sys.exit(1) → pipeline FAILS, no deploy
+  → if PASSES: continue
+
+Step 5: Vulnerability Scan
+  trivy image rishikoy/mlops:predictor-v1
+  severity: CRITICAL,HIGH, exit-code: 1
+  → fails pipeline if critical CVEs found
+
+Step 6: Deploy (only if ALL above passed)
+  kubectl apply -f k3s/inference-service.yaml
+  → KServe updates InferenceService
+  → New pod starts, loads new model version from MLflow
+  → Old pod kept until new pod passes readiness probe
+
+Rollback:
+  If canary fails → set canaryTrafficPercent: 0
+  Instant rollback, no pod changes needed</pre>
+</div>
+
+<!-- SUBPAGE: DATA FLOW -->
+<div class="subp" id="arch-data">
+  <h1><span class="tag">Architecture · Data</span>Data Flow — Where Data Lives and Moves</h1>
+  <pre>
+DATA FLOW — 4 BUCKETS, 4 OWNERS
+
+┌─────────────────────────────────────────────────────────┐
+│ BUCKET: mlflow-artifacts                                │
+│ Owner: MLflow server                                    │
+│ Contents:                                               │
+│   1/{run_id}/artifacts/model/                          │
+│     model.pkl          ← serialized RandomForest       │
+│     MLmodel            ← framework + signature meta    │
+│     requirements.txt   ← training environment          │
+│ Written by: training script via mlflow.log_model()     │
+│ Read by:    KServe predictor pod at startup             │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ BUCKET: dvc-data                                        │
+│ Owner: DVC                                              │
+│ Contents:                                               │
+│   nayak-mlops/house-prediction-model/v1/               │
+│     train.parquet  (16,512 rows — REFERENCE DATA)      │
+│     test.parquet   (4,128 rows)                        │
+│ Written by: dvc push from training machine             │
+│ Read by:    Evidently CronJob (drift reference)        │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ BUCKET: predictions                                     │
+│ Owner: FastAPI logger                                   │
+│ Contents:                                               │
+│   mlflow-model/v1/2026-04-14/batch_0001.parquet       │
+│   Schema: 8 features + prediction + timestamp + meta  │
+│ Written by: logger.py async (every 50 requests)        │
+│ Read by:    Evidently CronJob (current data)           │
+│ Lifecycle:  Delete after 90 days                       │
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────┐
+│ BUCKET: evidently                                       │
+│ Owner: Evidently UI pod                                 │
+│ Contents:                                               │
+│   projects/mlflow-model/reports/2026-04-14_14:00.json  │
+│ Written by: drift_check.py via RemoteWorkspace API     │
+│ Read by:    Evidently UI (browser view)                │
+│ Lifecycle:  Delete after 180 days                      │
+└─────────────────────────────────────────────────────────┘</pre>
+</div>
+
+</div><!-- /page-arch -->
+
+<!-- ████████████████████████████████ PAGE: METRICS ████████████████████████████████ -->
+<div class="page" id="page-metrics">
+
+  <div class="subp on" id="metrics-reg">
+    <h1><span class="tag">Metrics · Regression</span>Regression Metrics — Full Reference</h1>
+    <p class="lead">Your model predicts a continuous number (house price). Click any card for formula, when to use, when NOT to use, what to do when it degrades.</p>
+    <div class="mc-grid">
+
+      <div class="mc" onclick="toggleMC(this,'mcd-rmse')">
+        <div class="mc-top"><div class="mc-ic">📏</div><div class="mc-name">RMSE</div><span class="mc-badge br">REGRESSION</span></div>
+        <div class="mc-nick">Root Mean Square Error</div>
+        <div class="mc-formula">√( mean( (actual − predicted)² ) )</div>
+        <div class="mc-detail" id="mcd-rmse">
+          <div class="mr"><span class="ml">Unit</span><span>Same as target. If predicting $100k units, RMSE=0.52 → avg error ≈$52k</span></div>
+          <div class="mr"><span class="ml">Your model</span><span>RMSE ≈ 0.52 (target range 0.5–5.0, so ~25% relative error)</span></div>
+          <div class="mr"><span class="ml">Sensitivity</span><span>Squaring amplifies large errors — one very wrong prediction hurts RMSE a lot</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>Large errors are especially costly (financial, medical, safety)</span></div>
+          <div class="mr"><span class="ml">Don't use</span><span>When outliers dominate and you don't want them to drive the metric</span></div>
+          <div class="mr"><span class="ml">If it rises</span><span>1) Check data drift 2) Check recent deployment 3) Check feature distributions 4) Consider retraining</span></div>
+          <div class="mr"><span class="ml">vs MAE</span><span>RMSE ≫ MAE means a few large errors. RMSE ≈ MAE means errors are uniformly distributed.</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-mae')">
+        <div class="mc-top"><div class="mc-ic">📐</div><div class="mc-name">MAE</div><span class="mc-badge br">REGRESSION</span></div>
+        <div class="mc-nick">Mean Absolute Error</div>
+        <div class="mc-formula">mean( |actual − predicted| )</div>
+        <div class="mc-detail" id="mcd-mae">
+          <div class="mr"><span class="ml">Unit</span><span>Same as target — directly interpretable by non-technical stakeholders</span></div>
+          <div class="mr"><span class="ml">Your model</span><span>MAE ≈ 0.37 → median absolute error $37k</span></div>
+          <div class="mr"><span class="ml">vs RMSE</span><span>MAE treats all errors equally. RMSE punishes large errors more heavily.</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>All errors matter equally, no special penalty for large errors</span></div>
+          <div class="mr"><span class="ml">Don't use</span><span>When large errors have disproportionate business impact</span></div>
+          <div class="mr"><span class="ml">Gradient</span><span>Not differentiable at zero — use MSE as training loss, MAE for evaluation</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-r2')">
+        <div class="mc-top"><div class="mc-ic">📊</div><div class="mc-name">R² Score</div><span class="mc-badge br">REGRESSION</span></div>
+        <div class="mc-nick">Coefficient of Determination</div>
+        <div class="mc-formula">1 − (SS_res / SS_tot)</div>
+        <div class="mc-detail" id="mcd-r2">
+          <div class="mr"><span class="ml">Scale</span><span>−∞ to 1.0. Negative means worse than predicting the mean.</span></div>
+          <div class="mr"><span class="ml">R²=1.0</span><span>Perfect — model explains 100% of variance</span></div>
+          <div class="mr"><span class="ml">R²=0.81</span><span>Your model: explains 81% of house price variance</span></div>
+          <div class="mr"><span class="ml">R²=0.0</span><span>Model is as good as always predicting the mean — useless</span></div>
+          <div class="mr"><span class="ml">R²&lt;0</span><span>Worse than predicting the mean — something is very wrong</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>Comparing models, need relative performance measure</span></div>
+          <div class="mr"><span class="ml">Limitation</span><span>Adding more features always increases R² — use Adjusted R² when comparing feature sets</span></div>
+          <div class="mr"><span class="ml">If it drops</span><span>Model explaining less variance → distribution shifted → likely concept drift or serving skew</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-mape')">
+        <div class="mc-top"><div class="mc-ic">📉</div><div class="mc-name">MAPE</div><span class="mc-badge br">REGRESSION</span></div>
+        <div class="mc-nick">Mean Absolute Percentage Error</div>
+        <div class="mc-formula">mean( |actual−pred| / |actual| ) × 100%</div>
+        <div class="mc-detail" id="mcd-mape">
+          <div class="mr"><span class="ml">Unit</span><span>Percentage — easy for business stakeholders to understand</span></div>
+          <div class="mr"><span class="ml">MAPE=10%</span><span>On average, predictions are 10% off from actual values</span></div>
+          <div class="mr"><span class="ml">Limitation</span><span>Undefined when actual=0. Asymmetric — penalizes under-predictions more than over-predictions.</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>Business stakeholders want a % error they can understand</span></div>
+          <div class="mr"><span class="ml">Don't use</span><span>When actual values can be zero or very small</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="subp" id="metrics-cls">
+    <h1><span class="tag">Metrics · Classification</span>Classification Metrics — Precision, Recall, F1</h1>
+    <p class="lead">For fraud, churn, spam, disease — anything predicting categories. Everything derives from the Confusion Matrix.</p>
+    <h2>Confusion Matrix — The Foundation</h2>
+    <pre>                  Predicted YES      Predicted NO
+Actual YES    |  True Positive (TP) | False Negative (FN)  |  ← Missed
+Actual NO     | False Positive (FP) |  True Negative (TN)  |  ← False alarm
+
+Cost analysis:
+  FP = false alarm  → use Precision to minimize FPs
+  FN = missed real  → use Recall to minimize FNs
+  
+Examples:
+  Spam: FP=important email blocked(costly) → maximize Precision
+  Fraud: FN=fraud missed(costly)           → maximize Recall
+  Disease: FN=cancer missed(deadly)        → maximize Recall</pre>
+    <div class="mc-grid">
+
+      <div class="mc" onclick="toggleMC(this,'mcd-prec')">
+        <div class="mc-top"><div class="mc-ic">🎯</div><div class="mc-name">Precision</div><span class="mc-badge bc">CLASSIFICATION</span></div>
+        <div class="mc-nick">"When I say YES, am I right?"</div>
+        <div class="mc-formula">TP / (TP + FP)</div>
+        <div class="mc-detail" id="mcd-prec">
+          <div class="mr"><span class="ml">P=1.0</span><span>Every YES prediction was correct — zero false alarms</span></div>
+          <div class="mr"><span class="ml">P=0.5</span><span>Half your YES predictions were wrong — 50% false alarm rate</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>False positives are costly: spam (blocked legit email), recommendation (showing irrelevant items)</span></div>
+          <div class="mr"><span class="ml">Trade-off</span><span>Higher precision → lower recall. You miss more real positives to avoid false alarms.</span></div>
+          <div class="mr"><span class="ml">If it drops</span><span>Model flagging too many false positives → users annoyed, costs rising, trust eroding</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-rec')">
+        <div class="mc-top"><div class="mc-ic">🔍</div><div class="mc-name">Recall</div><span class="mc-badge bc">CLASSIFICATION</span></div>
+        <div class="mc-nick">"Of all actual YES, how many caught?"</div>
+        <div class="mc-formula">TP / (TP + FN)</div>
+        <div class="mc-detail" id="mcd-rec">
+          <div class="mr"><span class="ml">Also called</span><span>Sensitivity, True Positive Rate, Hit Rate</span></div>
+          <div class="mr"><span class="ml">R=1.0</span><span>Caught every single positive — zero misses</span></div>
+          <div class="mr"><span class="ml">R=0.5</span><span>Missed half the actual positives</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>False negatives are costly: fraud (missed = financial loss), cancer (missed = death)</span></div>
+          <div class="mr"><span class="ml">Trade-off</span><span>Higher recall → lower precision. More false alarms to catch more real positives.</span></div>
+          <div class="mr"><span class="ml">If it drops</span><span>Real positives getting through undetected → fraud escaping, patients not caught</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-f1')">
+        <div class="mc-top"><div class="mc-ic">⚖️</div><div class="mc-name">F1 Score</div><span class="mc-badge bc">CLASSIFICATION</span></div>
+        <div class="mc-nick">Harmonic mean of Precision & Recall</div>
+        <div class="mc-formula">2 × (P × R) / (P + R)</div>
+        <div class="mc-detail" id="mcd-f1">
+          <div class="mr"><span class="ml">Why harmonic</span><span>Arithmetic mean rewards imbalance (P=1.0,R=0.0 → mean=0.5, looks ok). Harmonic punishes it: F1=0.0</span></div>
+          <div class="mr"><span class="ml">F1=1.0</span><span>Perfect precision AND perfect recall</span></div>
+          <div class="mr"><span class="ml">F1=0.0</span><span>Either precision or recall is zero — useless model</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>Both FP and FN have significant cost — churn, content moderation</span></div>
+          <div class="mr"><span class="ml">Imbalanced</span><span>Use F1 instead of accuracy — accuracy is misleading when one class dominates</span></div>
+          <div class="mr"><span class="ml">F-beta</span><span>F2 weights recall 2x. F0.5 weights precision 2x. Use when one matters more than other.</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-acc')">
+        <div class="mc-top"><div class="mc-ic">✅</div><div class="mc-name">Accuracy</div><span class="mc-badge bc">CLASSIFICATION</span></div>
+        <div class="mc-nick">% of all predictions correct</div>
+        <div class="mc-formula">(TP + TN) / (TP + TN + FP + FN)</div>
+        <div class="mc-detail" id="mcd-acc">
+          <div class="mr"><span class="ml">Use when</span><span>Balanced classes AND all errors cost the same</span></div>
+          <div class="mr"><span class="ml">The trap</span><span>99% legit transactions, 1% fraud → 99% accuracy by saying everything is legit. Useless model.</span></div>
+          <div class="mr"><span class="ml">Rule</span><span>If class imbalance &gt; 10:1, never use accuracy. Use F1, Recall, or AUC-ROC.</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="subp" id="metrics-auc">
+    <h1><span class="tag">Metrics · Classification</span>AUC-ROC & PR-AUC</h1>
+    <div class="mc-grid">
+
+      <div class="mc" onclick="toggleMC(this,'mcd-auc')">
+        <div class="mc-top"><div class="mc-ic">📈</div><div class="mc-name">AUC-ROC</div><span class="mc-badge bc">CLASSIFICATION</span></div>
+        <div class="mc-nick">Area Under ROC Curve — threshold-independent</div>
+        <div class="mc-formula">Area under TPR vs FPR curve</div>
+        <div class="mc-detail" id="mcd-auc">
+          <div class="mr"><span class="ml">ROC Curve</span><span>Plots True Positive Rate (Recall) vs False Positive Rate at every threshold from 0.0 to 1.0</span></div>
+          <div class="mr"><span class="ml">AUC=1.0</span><span>Perfect separator — all positives ranked above all negatives</span></div>
+          <div class="mr"><span class="ml">AUC=0.5</span><span>Random classifier — no better than coin flip</span></div>
+          <div class="mr"><span class="ml">Key insight</span><span>Threshold-independent — measures model's ability to rank positives above negatives regardless of cutoff</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>Comparing models, evaluating ranking ability</span></div>
+          <div class="mr"><span class="ml">Limitation</span><span>Optimistic for imbalanced datasets. PR-AUC is more informative when positive class is rare.</span></div>
+        </div>
+      </div>
+
+      <div class="mc" onclick="toggleMC(this,'mcd-prauc')">
+        <div class="mc-top"><div class="mc-ic">📉</div><div class="mc-name">PR-AUC</div><span class="mc-badge bc">CLASSIFICATION</span></div>
+        <div class="mc-nick">Area Under Precision-Recall Curve</div>
+        <div class="mc-formula">Area under Precision vs Recall curve</div>
+        <div class="mc-detail" id="mcd-prauc">
+          <div class="mr"><span class="ml">vs AUC-ROC</span><span>PR-AUC is more informative for imbalanced data — focuses on minority class performance, doesn't reward TN</span></div>
+          <div class="mr"><span class="ml">Use when</span><span>Fraud, disease, rare events — positive class is small fraction of data</span></div>
+          <div class="mr"><span class="ml">High PR-AUC</span><span>Model catches positives without excessive false alarms</span></div>
+          <div class="mr"><span class="ml">Monitoring</span><span>If PR-AUC drops while AUC-ROC looks stable → minority class degrading silently</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="subp" id="metrics-prod">
+    <h1><span class="tag">Metrics · Production</span>Infrastructure / Serving Metrics</h1>
+    <p class="lead">These are NOT ML metrics — they tell you if your serving infrastructure is healthy.</p>
+    <table>
+      <tr><th>Metric</th><th>PromQL</th><th>Normal</th><th>Alert When</th><th>What To Do</th></tr>
+      <tr><td>Request Rate</td><td>rate(requests_total[5m])</td><td>Stable/growing</td><td>Sudden drop to 0</td><td>Check load balancer, DNS, upstream</td></tr>
+      <tr><td>P99 Latency</td><td>histogram_quantile(0.99,...)</td><td>&lt;100ms sklearn</td><td>&gt;500ms sustained</td><td>Check pod resources, model load, MinIO write blocking</td></tr>
+      <tr><td>Error Rate %</td><td>rate(errors[5m])/rate(total[5m])</td><td>&lt;1%</td><td>&gt;5% for 5 min</td><td>Check pod logs, input validation, model health</td></tr>
+      <tr><td>Pod CPU</td><td>container_cpu_usage...</td><td>&lt;70% of limit</td><td>&gt;90% sustained</td><td>Increase limits or scale replicas</td></tr>
+      <tr><td>Pod Memory</td><td>container_memory_working_set</td><td>Stable after startup</td><td>Growing over time</td><td>Buffer leak — check logger flush, restart pod</td></tr>
+    </table>
+  </div>
+
+  <div class="subp" id="metrics-when">
+    <h1><span class="tag">Metrics · Decision</span>When To Use Which Metric</h1>
+    <h2>Decision Framework</h2>
+    <pre>
+Step 1: Regression or Classification?
+  Continuous output?  → RMSE, MAE, R²
+  Category output?    → Step 2
+
+Step 2: Balanced or Imbalanced?
+  Equal classes?      → Accuracy + F1 ok
+  One class rare?     → NEVER accuracy → use F1, Recall, PR-AUC
+
+Step 3: What costs more — FP or FN?
+  Missing positives costly (fraud, disease)  → maximize Recall
+  False alarms costly (spam, recommend)      → maximize Precision
+  Both matter equally                        → use F1
+
+Step 4: Need threshold-independent comparison?
+  Yes → AUC-ROC (balanced) or PR-AUC (imbalanced)</pre>
+    <h2>By Problem Type</h2>
+    <table>
+      <tr><th>Problem</th><th>Primary</th><th>Secondary</th><th>Why</th></tr>
+      <tr><td>House price prediction</td><td>RMSE</td><td>R²</td><td>Regression, large errors costly</td></tr>
+      <tr><td>Fraud detection</td><td>Recall</td><td>PR-AUC</td><td>Missing fraud = financial loss, imbalanced</td></tr>
+      <tr><td>Spam detection</td><td>Precision</td><td>F1</td><td>Blocking legit email is costly</td></tr>
+      <tr><td>Disease detection</td><td>Recall</td><td>AUC-ROC</td><td>Missing disease can be fatal</td></tr>
+      <tr><td>Churn prediction</td><td>F1</td><td>AUC-ROC</td><td>Both FP and FN have business cost</td></tr>
+      <tr><td>Demand forecasting</td><td>MAPE</td><td>MAE</td><td>Business understands % error</td></tr>
+      <tr><td>Image classification (balanced)</td><td>Accuracy</td><td>F1</td><td>Equal classes, equal error costs</td></tr>
+    </table>
+  </div>
+
+</div><!-- /page-metrics -->
+
+<!-- ████████████████████████████████ PAGE: DRIFT ████████████████████████████████ -->
+<div class="page" id="page-drift">
+
+  <div class="subp on" id="drift-all">
+    <h1><span class="tag">Drift · All Types</span>6 Drift Types — Click to Expand</h1>
+    <p class="lead">Drift = when the statistical world your model learned from diverges from the world it's predicting in. 6 distinct types, each with different causes, detection, and fix.</p>
+
+    <div class="dc" style="border-left-color:var(--cyan);" onclick="toggleDC(this,'dcd1')">
+      <div class="dc-top"><div class="dc-num" style="background:rgba(0,229,255,.15);color:var(--cyan);">TYPE 1</div><div class="dc-name">Data Drift</div><span class="pill pc">Covariate Shift</span><span class="pill pc">P(X) changes</span></div>
+      <div class="dc-sub">Input feature distributions change. The relationship P(Y|X) stays the same.</div>
+      <div class="dc-body" id="dcd1">
+        <div class="ds"><div class="ds-title" style="color:var(--cyan);">What It Is</div><p>Production inputs have different statistical properties from training inputs. The model's learned relationships may still be correct but it's being applied to data it wasn't optimized for.</p></div>
+        <div class="ds"><div class="ds-title" style="color:var(--yellow);">Real Example</div><pre>Training (2020): avg MedInc = 3.8 (working-class neighborhoods)
+Production (2026): avg MedInc = 7.2 (app now popular in wealthy areas)
+
+Input distribution shifted. Model may underestimate prices
+for wealthy neighborhoods it rarely saw in training.</pre></div>
+        <div class="ds"><div class="ds-title" style="color:var(--green);">Detection</div><ul><li>PSI per feature — PSI &gt; 0.2 = significant drift</li><li>KS test — p-value &lt; 0.05 = distributions differ</li><li>Evidently DataDriftPreset does both automatically</li></ul></div>
+        <div class="ds"><div class="ds-title" style="color:var(--red);">What To Do</div><ol><li>Confirm drift is real (not a data pipeline bug)</li><li>Check if model performance also degraded</li><li>If yes: collect new labeled data, retrain</li><li>If no: monitor closely, schedule retrain next sprint</li></ol></div>
+        <div class="ds"><div class="ds-title" style="color:var(--purple);">5 Whys</div><div class="whys"><div class="why"><div class="why-n">WHY 1</div><div class="why-t">Production predictions are getting less accurate over time.</div></div><div class="why"><div class="why-n">WHY 2</div><div class="why-t">The data the model sees in production has different characteristics than training data.</div></div><div class="why"><div class="why-n">WHY 3</div><div class="why-t">The world changes — user demographics shift, new markets open, economic conditions evolve.</div></div><div class="why"><div class="why-n">WHY 4</div><div class="why-t">The model only learned from historical data, a static snapshot of a past reality.</div></div><div class="why"><div class="why-n">WHY 5</div><div class="why-t">ML models don't update themselves — they are frozen at training time unless explicitly retrained.</div></div></div></div>
+      </div>
+    </div>
+
+    <div class="dc" style="border-left-color:var(--yellow);" onclick="toggleDC(this,'dcd2')">
+      <div class="dc-top"><div class="dc-num" style="background:rgba(255,214,10,.15);color:var(--yellow);">TYPE 2</div><div class="dc-name">Concept Drift</div><span class="pill py">P(Y|X) changes</span><span class="pill py">Hardest to detect</span></div>
+      <div class="dc-sub">The relationship between features and outcome changes. Same inputs → different correct outputs.</div>
+      <div class="dc-body" id="dcd2">
+        <div class="ds"><div class="ds-title" style="color:var(--cyan);">What It Is</div><p>The most dangerous drift. Feature distributions can look perfectly normal while model performance silently degrades because the world's rules have changed.</p></div>
+        <div class="ds"><div class="ds-title" style="color:var(--yellow);">Real Example</div><pre>Training (2019 pre-COVID):
+  High income + city center → high house price ✓
+
+Production (2021 post-COVID):
+  High income + city center → lower price
+  (remote work → people moved to suburbs)
+
+Same features, completely different correct output.
+Feature drift monitoring shows NOTHING wrong.
+Only performance monitoring catches this.</pre></div>
+        <div class="ds"><div class="ds-title" style="color:var(--green);">Detection</div><ul><li>Cannot detect with feature drift monitoring alone</li><li>Must monitor model performance against ground truth</li><li>Business KPIs declining despite stable features is a signal</li><li>A/B test against a baseline or retrained model</li></ul></div>
+        <div class="ds"><div class="ds-title" style="color:var(--red);">What To Do</div><ol><li>Collect recent labeled data (actuals from real outcomes)</li><li>Retrain with recent data — model needs to learn new patterns</li><li>Consider adding new features that capture changed dynamics</li><li>Increase monitoring frequency after retrain</li></ol></div>
+      </div>
+    </div>
+
+    <div class="dc" style="border-left-color:var(--green);" onclick="toggleDC(this,'dcd3')">
+      <div class="dc-top"><div class="dc-num" style="background:rgba(0,255,135,.15);color:var(--green);">TYPE 3</div><div class="dc-name">Label Drift</div><span class="pill pg">Prior Probability Shift</span><span class="pill pg">P(Y) changes</span></div>
+      <div class="dc-sub">Target variable distribution changes. Class frequencies shift.</div>
+      <div class="dc-body" id="dcd3">
+        <div class="ds"><div class="ds-title" style="color:var(--yellow);">Real Example</div><pre>Training:    1% fraud rate (model calibrated for this)
+Production:  8% fraud rate (new attack campaign)
+
+Model underestimates fraud probability at 8% base rate.
+Fix threshold from 0.5 to 0.2, or retrain on new distribution.</pre></div>
+        <div class="ds"><div class="ds-title" style="color:var(--green);">Detection</div><ul><li>Monitor prediction distribution over time</li><li>If % positive predictions shifts significantly</li><li>Evidently TargetDriftPreset</li></ul></div>
+        <div class="ds"><div class="ds-title" style="color:var(--red);">What To Do</div><ol><li>Adjust classification threshold to new base rate</li><li>Retrain with data that reflects new distribution</li></ol></div>
+      </div>
+    </div>
+
+    <div class="dc" style="border-left-color:var(--orange);" onclick="toggleDC(this,'dcd4')">
+      <div class="dc-top"><div class="dc-num" style="background:rgba(255,140,0,.15);color:var(--orange);">TYPE 4</div><div class="dc-name">Feature Drift</div><span class="pill" style="background:rgba(255,140,0,.15);color:var(--orange);border:1px solid rgba(255,140,0,.3);">Individual Column</span></div>
+      <div class="dc-sub">Specific individual features drift while others remain stable.</div>
+      <div class="dc-body" id="dcd4">
+        <div class="ds"><div class="ds-title" style="color:var(--yellow);">Real Example</div><pre>Population feature:
+  Training: avg 1,200 residents/district
+  Production: avg 5,000 (city expanded massively)
+  PSI = 0.45 → major drift on Population feature
+
+MedInc: stable. HouseAge: stable.
+Population: DRIFTED → points to data pipeline issue</pre></div>
+        <div class="ds"><div class="ds-title" style="color:var(--green);">Detection</div><ul><li>Evidently reports PSI per feature individually</li><li>Grafana: ml_feature_drift_score{feature="Population"}</li><li>Alert when any single feature PSI &gt; 0.2</li></ul></div>
+        <div class="ds"><div class="ds-title" style="color:var(--red);">What To Do</div><ol><li>Investigate source of that specific feature</li><li>Is it a real world change OR a pipeline bug?</li><li>If bug: fix pipeline. If real: evaluate impact, retrain.</li></ol></div>
+      </div>
+    </div>
+
+    <div class="dc" style="border-left-color:var(--purple);" onclick="toggleDC(this,'dcd5')">
+      <div class="dc-top"><div class="dc-num" style="background:rgba(189,147,249,.15);color:var(--purple);">TYPE 5</div><div class="dc-name">Prediction Drift</div><span class="pill pp">Output Distribution</span></div>
+      <div class="dc-sub">Model's output distribution shifts. Input features may look completely normal.</div>
+      <div class="dc-body" id="dcd5">
+        <div class="ds"><div class="ds-title" style="color:var(--yellow);">Real Example</div><pre>Normal: predictions range 1.5–5.0 (house prices)
+Suddenly: all predictions = 4.336 (std ≈ 0.0)
+
+This happened in YOUR stack!
+(55 test requests used identical features → std = 0.0)
+Evidently flagged drift: True (not meaningful — it was test data)
+
+In production this would indicate:
+  - Serving code bug (preprocessing locks on cached input)
+  - Model loaded incorrectly
+  - Input validation bug allowing only one value</pre></div>
+        <div class="ds"><div class="ds-title" style="color:var(--green);">Detection</div><ul><li>Monitor prediction mean and std over time in Grafana</li><li>Alert if std drops near 0 or mean shifts by &gt; 2σ</li></ul></div>
+        <div class="ds"><div class="ds-title" style="color:var(--red);">What To Do</div><ol><li>Check serving code first — most likely a bug</li><li>Verify model loaded correctly (check pod logs)</li><li>Roll back recent deployment if timing matches</li></ol></div>
+      </div>
+    </div>
+
+    <div class="dc" style="border-left-color:var(--red);" onclick="toggleDC(this,'dcd6')">
+      <div class="dc-top"><div class="dc-num" style="background:rgba(255,71,87,.15);color:var(--red);">TYPE 6</div><div class="dc-name">Training-Serving Skew</div><span class="pill pr">#1 Silent Killer</span><span class="pill pr">Not Technically "Drift"</span></div>
+      <div class="dc-sub">Feature computation at serving ≠ feature computation at training. Same raw input → different feature values.</div>
+      <div class="dc-body" id="dcd6">
+        <div class="ds"><div class="ds-title" style="color:var(--yellow);">Real Example</div><pre>Training code:
+  AveOccup = Population / Households = 2.55  ← correct
+
+Serving code (different engineer, 6 months later):
+  AveOccup = Population / Bedrooms = 0.89   ← wrong formula!
+
+Model was trained expecting AveOccup ≈ 2.55
+Production input: AveOccup = 0.89
+Result: wrong predictions. No error. No crash. Silent degradation.</pre></div>
+        <div class="ds"><div class="ds-title" style="color:var(--green);">Detection</div><ul><li>Log actual feature values at serving time (your logger.py does this)</li><li>Evidently compares serving features vs training features</li><li>Integration test: known input → assert serving features == training features</li></ul></div>
+        <div class="ds"><div class="ds-title" style="color:var(--red);">Prevention (Better Than Detection)</div><ul><li><strong>Feature Store (Feast)</strong> — one code path computes features for both training and serving</li><li><strong>Shared library</strong> — feature computation in a pip package imported by both train.py and predictor</li><li><strong>Automated tests</strong> — CI/CD test that verifies serving features match training features for known inputs</li></ul></div>
+      </div>
+    </div>
+
+  </div><!-- /drift-all -->
+
+  <div class="subp" id="drift-detect">
+    <h1><span class="tag">Drift · Detection</span>Detection Methods</h1>
+    <h2>Which Test for Which Feature Type</h2>
+    <table>
+      <tr><th>Feature Type</th><th>Default in Evidently</th><th>Alternative</th><th>Threshold</th></tr>
+      <tr><td>Numerical continuous</td><td>KS test</td><td>PSI, Wasserstein distance</td><td>p-value &lt; 0.05</td></tr>
+      <tr><td>Categorical</td><td>Chi-squared test</td><td>Jensen-Shannon divergence</td><td>p-value &lt; 0.05</td></tr>
+      <tr><td>Binary</td><td>Z-test proportions</td><td>Fisher exact</td><td>p-value &lt; 0.05</td></tr>
+      <tr><td>Target/prediction</td><td>KS test</td><td>PSI</td><td>PSI &gt; 0.2</td></tr>
+    </table>
+    <h2>Drift Decision Tree (When Alert Fires)</h2>
+    <pre>Alert: ml_drift_detected = 1
+    ↓
+Q1: How many features drifted?
+    1-2 features  → likely pipeline bug for those features
+    5+ features   → real-world distribution shift
+    ↓
+Q2: PSI severity?
+    0.1 – 0.2  → slight, monitor more closely
+    0.2 – 0.4  → significant, investigate
+    > 0.4      → major, retrain likely needed
+    ↓
+Q3: Is model performance also degrading?
+    YES → urgent: retrain pipeline
+    NO  → schedule retrain, tighten monitoring
+    ↓
+Q4: What changed recently?
+    New data source? New user segment? Code deployment?
+    Fix root cause before just retraining</pre>
+  </div>
+
+  <div class="subp" id="drift-psi">
+    <h1><span class="tag">Drift · Statistics</span>PSI & KS Test — Deep Dive</h1>
+    <h2>PSI — Population Stability Index</h2>
+    <pre>Formula: PSI = Σ (Actual% − Expected%) × ln(Actual% / Expected%)
+
+Step by step:
+  1. Bin the feature into 10 equal-width buckets
+  2. Expected%: % of TRAINING data in each bucket
+  3. Actual%:   % of PRODUCTION data in each bucket
+  4. Per bucket: (Actual% − Expected%) × ln(Actual%/Expected%)
+  5. Sum all buckets = PSI
+
+Interpretation:
+  PSI < 0.10   → STABLE. No action needed.
+  PSI 0.1–0.2  → SLIGHT change. Monitor.
+  PSI > 0.20   → SIGNIFICANT drift. Investigate.
+  PSI > 0.25   → MAJOR drift. Model likely impacted.
+
+Industry standard: Finance / credit scoring use PSI routinely.
+Regulators require PSI reports quarterly. PSI > 0.25 triggers mandatory model review.</pre>
+    <h2>KS Test — Kolmogorov-Smirnov</h2>
+    <pre>What it measures: Maximum vertical distance between two CDFs
+
+How it works:
+  1. Sort training and production feature values separately
+  2. Compute CDF (Cumulative Distribution Function) for each
+  3. Find maximum vertical distance between the two CDFs → D statistic
+  4. Calculate p-value from D and sample sizes
+
+Interpretation:
+  D = 0    → identical distributions
+  D = 1    → completely different distributions
+  p < 0.05 → distributions are significantly different (drift detected)
+  p > 0.05 → no statistically significant difference
+
+Advantage: Non-parametric — makes no assumptions about distribution shape.
+Works on small samples. Shows WHERE maximum difference occurs.</pre>
+    <h2>PSI vs KS — Comparison</h2>
+    <table>
+      <tr><th>Aspect</th><th>PSI</th><th>KS Test</th></tr>
+      <tr><td>Output type</td><td>Descriptive score (0 to ∞)</td><td>Statistical test (p-value)</td></tr>
+      <tr><td>Thresholds</td><td>Industry-standard: 0.1, 0.2, 0.25</td><td>p &lt; 0.05 = significant</td></tr>
+      <tr><td>Industry</td><td>Finance, credit scoring (standard)</td><td>General ML monitoring</td></tr>
+      <tr><td>Sample size</td><td>Works any size</td><td>Very sensitive on large samples (always significant)</td></tr>
+    </table>
+  </div>
+
+  <div class="subp" id="drift-play">
+    <h1><span class="tag">Drift · Playbook</span>Drift Response Runbook</h1>
+    <p class="lead">Treat drift alerts like SRE incidents — structured investigation, clear escalation path.</p>
+    <pre>DRIFT RESPONSE RUNBOOK
+
+TRIGGER: ml_drift_detected == 1 fires in Grafana AlertManager
+
+──────────────────────────────────────────────────
+STEP 1: ASSESS SEVERITY (5 minutes)
+──────────────────────────────────────────────────
+□ Open Evidently UI → check which features drifted
+□ Check PSI values per feature
+□ Check prediction mean/std — has output distribution shifted?
+□ Check RMSE against test set (if actuals available)
+
+Classify:
+  1-2 features, PSI 0.1-0.2  → WATCH (low urgency)
+  3+ features OR PSI > 0.2   → INVESTIGATE (medium)
+  PSI > 0.4 OR perf degraded → ACT NOW (high urgency)
+
+──────────────────────────────────────────────────
+STEP 2: RULE OUT INFRA ISSUES (5 minutes)
+──────────────────────────────────────────────────
+□ Was there a recent deployment? (check git log, kubectl rollout history)
+□ Did data pipeline change? (check upstream data sources)
+□ Is it a feature computation bug? (compare logged vs expected ranges)
+
+→ If yes to any: fix root cause BEFORE retraining
+
+──────────────────────────────────────────────────
+STEP 3: IDENTIFY DRIFT TYPE (10 minutes)
+──────────────────────────────────────────────────
+□ Feature drift only:    look at per-feature PSI → investigate those features
+□ Prediction drift only: serving code bug → check main.py/logger.py
+□ Concept drift:         features OK but RMSE degraded → world changed
+
+──────────────────────────────────────────────────
+STEP 4: ACTION
+──────────────────────────────────────────────────
+Scenario A — Data drift + performance degraded:
+  1. Collect new labeled data representing new distribution
+  2. run train.py → logs to MLflow → quality gate → deploy
+  3. Canary 10% → monitor 30min → promote to 100%
+  4. Update reference data in DVC bucket
+
+Scenario B — Data drift + performance OK:
+  1. Schedule retrain within 1 week
+  2. Increase monitoring frequency (run Evidently every 15 min)
+  3. Document: what drifted, why, when
+
+Scenario C — Prediction drift (serving bug):
+  1. Rollback deployment: canaryTrafficPercent: 0
+  2. Debug serving code
+  3. Fix → rebuild image → redeploy
+
+Scenario D — Concept drift:
+  1. Collect recent labeled actuals
+  2. Retrain with recent data (last 3-6 months)
+  3. Add new features if needed
+  4. Document: what changed in the world
+
+──────────────────────────────────────────────────
+STEP 5: POST-INCIDENT
+──────────────────────────────────────────────────
+□ Document: drift type, root cause, action taken, time to resolve
+□ Update monitoring thresholds if needed
+□ Add test cases for this failure mode
+□ Update retrain schedule if frequency was wrong</pre>
+  </div>
+
+</div><!-- /page-drift -->
+
+<!-- ████████████████████████████████ PAGE: COMPONENTS ████████████████████████████████ -->
+<div class="page" id="page-comp">
+
+  <div class="subp on" id="comp-mlflow">
+    <h1><span class="tag">Components · Deep Dive</span>MLflow — Complete Reference</h1>
+    <p class="lead">MLflow has 4 independent components. You use 3 of them. Understanding each one deeply is essential.</p>
+    <h2>Component 1: Tracking Server</h2>
+    <pre>Purpose: Records every training run with full context
+Backend: PostgreSQL
+
+Per run stored:
+  run_id:     unique UUID
+  experiment: "california-housing"
+  params:     {n_estimators:100, max_depth:10}
+  metrics:    {rmse:0.52, r2:0.81, mae:0.37}
+  tags:       {model_type:"RandomForest"}
+  start_time, end_time, status: FINISHED/FAILED
+  source:     git commit hash (reproducibility!)</pre>
+    <h2>Component 2: Artifact Store</h2>
+    <pre>Purpose: Stores binary files associated with runs
+Backend: MinIO (your stack) or AWS S3, GCS, Azure Blob
+
+Per run artifacts:
+  model/
+    model.pkl         ← serialized sklearn RandomForest
+    MLmodel           ← metadata: flavor, signature, schema
+    conda.yaml        ← conda environment spec
+    requirements.txt  ← pip dependencies</pre>
+    <h2>Component 3: Model Registry</h2>
+    <pre>Purpose: Model versioning + promotion lifecycle
+Backend: PostgreSQL (metadata) + MinIO (artifact reference)
+
+mlflow.register_model(
+    model_uri=f"runs:/{run_id}/model",
+    name="best_random_forest_model"  )
+→ Creates: Version 1, Stage: None
+
+Promotion command:
+client.transition_model_version_stage(
+    name="best_random_forest_model", version=2, stage="Production")
+
+KServe loads via:
+    models:/best_random_forest_model/1
+    → MLflow resolves: PostgreSQL lookup → MinIO pkl download</pre>
+    <h2>Why NOT Using MLflow Serving</h2>
+    <pre>MLflow has mlflow models serve:
+  → Simple HTTP server, single process, no autoscaling
+  → Not K8s native, no canary, no health checks
+
+You replaced it with KServe:
+  → Autoscaling, canary, K8s native, custom code
+  → Interview answer: "MLflow for tracking and registry, KServe for serving"</pre>
+    <h2>Two-Client Problem</h2>
+    <pre>Windows (external):   MLFLOW_S3_ENDPOINT_URL=http://192.168.1.15:30900
+K3s pod (internal):   MLFLOW_S3_ENDPOINT_URL=http://minio.mlflow.svc.cluster.local:9000
+
+Same MinIO, different URLs. Solution:
+  Windows:  .env file (never commit!)
+  K3s pods: ConfigMap predictor-config</pre>
+  </div>
+
+  <div class="subp" id="comp-minio">
+    <h1><span class="tag">Components · Deep Dive</span>MinIO / S3 — Complete Reference</h1>
+    <h2>Object Storage vs Filesystem</h2>
+    <pre>Filesystem:       /home/rishi/models/rf.pkl  (OS-managed, single machine)
+Object Storage:   s3://mlflow-artifacts/1/run_id/model/model.pkl
+  → Flat namespace: just bucket + key
+  → HTTP API: works from any language, any machine
+  → Petabyte scale, concurrent reads
+  → AWS S3: 99.999999999% durability (11 nines)</pre>
+    <h2>S3 API — The Standard Everyone Implements</h2>
+    <pre>boto3 code is IDENTICAL for AWS S3 and MinIO:
+  # Only this line changes:
+  endpoint_url="http://192.168.1.15:30900"  # MinIO
+  endpoint_url=None                          # AWS S3 (default)
+
+Key operations:
+  s3.put_object(Bucket, Key, Body)   → upload
+  s3.get_object(Bucket, Key)         → download
+  s3.list_objects_v2(Bucket, Prefix) → list with prefix filter
+  s3.delete_object(Bucket, Key)      → delete</pre>
+    <h2>Bucket Design in Your Stack</h2>
+    <table><tr><th>Bucket</th><th>Writer</th><th>Reader</th><th>Lifecycle</th></tr>
+    <tr><td>mlflow-artifacts</td><td>Training script (MLflow)</td><td>KServe pod startup</td><td>Forever (models are precious)</td></tr>
+    <tr><td>dvc-data</td><td>dvc push</td><td>Evidently CronJob</td><td>Forever (data audit trail)</td></tr>
+    <tr><td>predictions</td><td>FastAPI logger</td><td>Evidently CronJob</td><td>90 days (cost control)</td></tr>
+    <tr><td>evidently</td><td>Evidently CronJob</td><td>Evidently UI pod</td><td>180 days</td></tr></table>
+  </div>
+
+  <div class="subp" id="comp-dvc">
+    <h1><span class="tag">Components · Deep Dive</span>DVC — Data Version Control</h1>
+    <h2>What DVC Does</h2>
+    <pre>Git:  versions code files (small, text, stored in .git)
+DVC:  versions data files (large, binary, stored in S3/MinIO)
+
+dvc add data/train.parquet
+  → Creates data/train.parquet.dvc (tiny pointer file, goes in Git)
+  → Adds data/train.parquet to .gitignore
+
+git commit -m "add training data v1"
+  → Git records: "this code + this .dvc pointer"
+
+dvc push
+  → Uploads actual parquet to MinIO dvc-data bucket
+
+# Reproduce any past experiment exactly:
+git checkout v1.0    # revert to old code
+dvc pull             # downloads matching data version
+python train.py      # guaranteed same results</pre>
+    <h2>The .dvc Pointer File</h2>
+    <pre>data/train.parquet.dvc contents:
+  outs:
+  - md5: abc123def456...   ← SHA256 hash of actual file
+    size: 2847392
+    path: train.parquet
+    
+This hash links code version to exact data version. Git stores the hash.
+MinIO stores the file. DVC manages the connection.</pre>
+    <h2>Commands Reference</h2>
+    <pre>dvc init              # initialize DVC in git repo
+dvc remote add        # configure MinIO as remote
+dvc add FILE          # start tracking a file
+dvc push              # upload tracked files to remote
+dvc pull              # download files from remote
+dvc status            # show if tracked files changed
+dvc repro             # reproduce pipeline steps</pre>
+  </div>
+
+  <div class="subp" id="comp-kserve">
+    <h1><span class="tag">Components · Deep Dive</span>KServe — Complete Reference</h1>
+    <h2>Architecture Layers</h2>
+    <pre>Layer 1: KServe Controller (CRD watcher)
+  Watches InferenceService resources
+  Creates/manages underlying K8s/Knative resources
+
+Layer 2: Knative Serving (Serverless mode)
+  Knative Service → Configuration → Revision → Route
+  Handles: autoscaling, scale-to-zero, traffic splitting
+
+Layer 3: Kourier (Network)
+  Routes traffic to correct Knative Revision
+  LoadBalancer IP: 192.168.1.240
+
+Layer 4: Predictor Pod
+  Two containers: queue-proxy sidecar + your FastAPI app
+  queue-proxy: autoscaling metrics, concurrency, health</pre>
+    <h2>Plain K8s Deployment vs KServe</h2>
+    <table><tr><th>Feature</th><th>Plain Deployment</th><th>KServe</th></tr>
+    <tr><td>Autoscaling</td><td>CPU/memory HPA only</td><td>Request-rate based (Knative)</td></tr>
+    <tr><td>Scale to zero</td><td>❌</td><td>✅ built-in</td></tr>
+    <tr><td>Canary</td><td>Manual, complex</td><td>canaryTrafficPercent: 10 (one field)</td></tr>
+    <tr><td>Multi-framework</td><td>Write code each time</td><td>sklearn/torch/tf runtimes built-in</td></tr>
+    <tr><td>Standard protocol</td><td>Your API format</td><td>V1/V2 inference protocol</td></tr></table>
+    <h2>Canary Deployment Flow</h2>
+    <pre>Step 1: canaryTrafficPercent: 10 → 10% to new model
+Step 2: Monitor 30min: error rate ok? latency ok? predictions ok?
+Step 3: canaryTrafficPercent: 50 → 50/50 split
+Step 4: Remove canaryTrafficPercent → 100% new model
+Step 5: Rollback anytime: canaryTrafficPercent: 0 (instant!)</pre>
+  </div>
+
+  <div class="subp" id="comp-fastapi">
+    <h1><span class="tag">Components · Deep Dive</span>FastAPI Predictor — Complete Reference</h1>
+    <h2>File Structure</h2>
+    <pre>predictor/
+  ├── main.py          # FastAPI app, lifespan, endpoints
+  ├── logger.py        # thread-safe batch writer to MinIO
+  ├── requirements.txt # pinned versions (sklearn must match training!)
+  └── Dockerfile       # python:3.11-slim base</pre>
+    <h2>main.py Key Patterns</h2>
+    <pre>@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # STARTUP: load model once, keep in RAM
+    app.state.model = mlflow.sklearn.load_model(
+        f"models:/{MODEL_NAME}/{MODEL_VERSION}")
+    yield
+    # SHUTDOWN: flush remaining predictions
+    force_flush()
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "model_loaded": True}
+
+@app.post("/predict")
+async def predict(req: PredictRequest, bt: BackgroundTasks):
+    arr = np.array(req.features).reshape(1,-1)
+    pred = float(app.state.model.predict(arr)[0])
+    bt.add_task(log_prediction, req.features, pred)  # async!
+    return {"prediction": pred, "version": MODEL_VERSION}</pre>
+    <h2>Why Custom Instead of Built-in Runtime?</h2>
+    <table><tr><th>Capability</th><th>Built-in sklearn runtime</th><th>Custom FastAPI</th></tr>
+    <tr><td>Prediction logging</td><td>❌ cannot add</td><td>✅ logger.py</td></tr>
+    <tr><td>Input validation</td><td>Basic only</td><td>✅ Pydantic custom rules</td></tr>
+    <tr><td>Custom metrics</td><td>❌</td><td>✅ prometheus_client</td></tr>
+    <tr><td>Business logic</td><td>❌</td><td>✅ any Python code</td></tr></table>
+    <div class="box bx-c"><div class="bt">Interview Answer</div>"KServe Transformer pattern is the production-grade alternative — keep built-in runtime for inference, add transformer sidecar for pre/post processing and logging. We use custom predictor now for simplicity at our scale."</div>
+  </div>
+
+  <div class="subp" id="comp-knative">
+    <h1><span class="tag">Components · Deep Dive</span>Knative — Serverless Platform</h1>
+    <h2>What Knative Adds To K8s</h2>
+    <pre>Plain K8s: define Deployment + Service + HPA manually
+Knative:   define "Service", it manages everything:
+  → Knative Service → Configuration → Revision (immutable snapshot)
+                   → Route (traffic rules)
+
+Each code change = new Revision. Traffic can split across Revisions:
+  Revision 3: 90% of traffic (stable)
+  Revision 4: 10% of traffic (canary)
+  
+KServe uses Knative Revisions as the canary mechanism.</pre>
+    <h2>Scale to Zero Flow</h2>
+    <pre>minReplicas=0 (default):
+  No traffic for 30s → pods terminated → cost savings
+
+New request arrives:
+  1. Kourier receives request
+  2. Knative activator buffers it (client waits)
+  3. Controller starts new pod (~30-60s cold start for ML models)
+  4. Pod loads model from MLflow/MinIO
+  5. Activator forwards buffered request
+
+For production with SLA (use minReplicas=1):
+  → Always one warm pod, no cold start, predictable latency
+  → Pay for always-on pod but guarantee response time</pre>
+    <h2>Serverless vs RawDeployment</h2>
+    <table><tr><th>Mode</th><th>When to use</th><th>Your situation</th></tr>
+    <tr><td>Serverless</td><td>Image in Docker Hub, need canary/scale-to-zero</td><td>predictor-v1 is on Docker Hub → use this</td></tr>
+    <tr><td>RawDeployment</td><td>Local image, development phase</td><td>Used this initially, before Docker Hub push</td></tr></table>
+  </div>
+
+  <div class="subp" id="comp-prometheus">
+    <h1><span class="tag">Components · Deep Dive</span>Prometheus — Metrics Database</h1>
+    <h2>The Scrape Model</h2>
+    <pre>Every 15-30 seconds Prometheus:
+  → GET http://kserve-pod:8080/metrics (ServiceMonitor configured)
+  → GET http://pushgateway:9091/metrics (ServiceMonitor configured)
+  → parses Prometheus text format
+  → stores in TSDB (Time Series Database) with timestamp
+
+Metrics text format example:
+  # HELP http_requests_total Total requests
+  # TYPE http_requests_total counter
+  http_requests_total{endpoint="/predict",status="200"} 1847
+  request_latency_seconds_bucket{le="0.1"} 1200</pre>
+    <h2>4 Metric Types</h2>
+    <table><tr><th>Type</th><th>Behavior</th><th>Example</th><th>Use For</th></tr>
+    <tr><td>Counter</td><td>Only increases</td><td>requests_total</td><td>Counts, totals</td></tr>
+    <tr><td>Gauge</td><td>Up and down</td><td>ml_drift_detected</td><td>Current values</td></tr>
+    <tr><td>Histogram</td><td>Bucketed samples</td><td>latency_seconds_bucket</td><td>Latency percentiles</td></tr>
+    <tr><td>Summary</td><td>Pre-calc quantiles</td><td>p50,p95,p99</td><td>Latency summaries</td></tr></table>
+    <h2>Key PromQL Queries</h2>
+    <pre>rate(http_requests_total[5m])                          # req/sec
+histogram_quantile(0.99, rate(latency_bucket[5m]))     # P99 latency
+rate(errors[5m]) / rate(total[5m]) * 100               # error rate %
+ml_drift_detected                                       # 0 or 1
+ml_feature_drift_score{feature="MedInc"}               # PSI per feature
+container_memory_working_set_bytes{container="pred"}   # pod memory</pre>
+    <h2>ServiceMonitor (How Prometheus Finds Your Pods)</h2>
+    <pre>apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: predictor-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: mlflow-model     ← scrapes all pods with this label
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s</pre>
+  </div>
+
+  <div class="subp" id="comp-grafana">
+    <h1><span class="tag">Components · Deep Dive</span>Grafana — Dashboards & Alerting</h1>
+    <h2>How Grafana Works</h2>
+    <pre>Grafana is a visualization layer — it does NOT store data.
+It queries Prometheus via PromQL on demand.
+
+Data source: Prometheus (auto-configured by kube-prometheus-stack)
+URL: http://grafana.route.ml.local
+
+Panel types:
+  Time series  → trends over time (latency, request rate)
+  Stat         → single current value (drift detected: YES/NO)
+  Gauge        → current value with threshold colors
+  Table        → current values for all features
+  Heatmap      → distribution over time</pre>
+    <h2>3 Dashboards to Build</h2>
+    <h3>Dashboard 1: ML Drift</h3>
+    <table><tr><th>Panel</th><th>Query</th><th>Visualization</th></tr>
+    <tr><td>Drift Detected</td><td>ml_drift_detected</td><td>Stat — Green (0) / Red (1)</td></tr>
+    <tr><td>Drift Share %</td><td>ml_drift_share * 100</td><td>Gauge 0-100%</td></tr>
+    <tr><td>Prediction Mean</td><td>ml_prediction_mean</td><td>Time series</td></tr>
+    <tr><td>Prediction Std</td><td>ml_prediction_std</td><td>Time series</td></tr>
+    <tr><td>Per-feature PSI</td><td>ml_feature_drift_score</td><td>Bar chart</td></tr></table>
+    <h3>Dashboard 2: Serving Health</h3>
+    <table><tr><th>Panel</th><th>Query</th></tr>
+    <tr><td>Requests/sec</td><td>rate(requests_total[5m])</td></tr>
+    <tr><td>P99 latency</td><td>histogram_quantile(0.99, rate(latency_bucket[5m]))</td></tr>
+    <tr><td>Error rate</td><td>rate(errors[5m])/rate(total[5m])*100</td></tr>
+    <tr><td>Pod CPU/memory</td><td>container_cpu_usage, container_memory_working_set</td></tr></table>
+    <h2>Alert Rules</h2>
+    <pre>Rule 1: DriftDetected
+  Condition: ml_drift_detected == 1
+  Duration:  5 minutes (sustained)
+  Severity:  warning
+  Notify:    Slack #mlops-alerts
+
+Rule 2: HighLatency
+  Condition: histogram_quantile(0.99, ...) > 0.5
+  Severity:  critical
+
+Rule 3: NoPredictions
+  Condition: rate(requests_total[10m]) == 0
+  Duration:  10 minutes
+  Severity:  critical — something stopped sending requests</pre>
+  </div>
+
+  <div class="subp" id="comp-evidently">
+    <h1><span class="tag">Components · Deep Dive</span>Evidently — Drift Detection</h1>
+    <h2>What Evidently Is</h2>
+    <pre>Open-source ML monitoring library + UI.
+Input: two DataFrames (reference + current)
+Output: statistical drift reports + metrics
+
+Two ways to use:
+  1. Python library (in your CronJob) → generates reports + pushes metrics
+  2. Evidently UI server (always running pod) → displays reports</pre>
+    <h2>Correct Imports for v0.7.21</h2>
+    <pre># THIS IS THE CRITICAL FIX FOR YOUR STACK
+from evidently import Report
+from evidently.presets import DataDriftPreset
+from evidently.metrics import ValueDrift               # NOT ColumnDrift!
+from evidently.ui.workspace.remote import RemoteWorkspace
+
+report = Report(metrics=[DataDriftPreset()])
+report.run(reference_data=ref_df, current_data=cur_df)
+
+# Extract results
+result = report.as_dict()
+drift_detected = result["metrics"][0]["result"]["dataset_drift"]
+drift_share    = result["metrics"][0]["result"]["share_of_drifted_columns"]
+
+# Save to Evidently UI
+ws = RemoteWorkspace("http://evidently-ui.ml.svc.cluster.local:80")
+project = ws.get_project("mlflow-model-monitoring")
+ws.add_report(project.id, report)</pre>
+    <h2>CronJob Pattern</h2>
+    <pre>schedule: "0 * * * *"   # every hour at :00
+concurrencyPolicy: Forbid  # don't run two at once
+
+Pod lifecycle:
+  1. Start → pull image rishikoy/mlops:evidently-v2
+  2. Read reference from dvc-data bucket
+  3. Read today's predictions from predictions bucket
+  4. Run Evidently report
+  5. Push to Evidently UI + Pushgateway
+  6. Exit (pod deleted)
+
+Test manually:
+  kubectl create job --from=cronjob/evidently-drift-check test-run -n ml
+  kubectl logs -n ml -l job-name=test-run -f</pre>
+  </div>
+
+  <div class="subp" id="comp-pushgw">
+    <h1><span class="tag">Components · Deep Dive</span>Prometheus Pushgateway</h1>
+    <h2>Why It Exists</h2>
+    <pre>Prometheus model: PULL (scrapes running services every 30s)
+
+Problem with CronJobs:
+  - Job runs for 20 seconds
+  - Job exits (pod gone)
+  - Prometheus scrapes 30s later — nothing to scrape!
+
+Pushgateway solution:
+  - CronJob pushes metrics to Pushgateway before exiting
+  - Pushgateway keeps last pushed value (persistent)
+  - Prometheus scrapes Pushgateway every 30s normally</pre>
+    <h2>Metrics Lifecycle</h2>
+    <pre>T=0:00  Evidently CronJob starts
+T=0:25  drift_check.py pushes metrics to Pushgateway
+          ml_drift_detected=1, ml_drift_share=0.5
+T=0:26  CronJob pod exits
+T=0:30  Prometheus scrapes Pushgateway → stores metrics
+T=1:00  Grafana queries Prometheus → shows drift alert
+T=1:01  Next CronJob starts...
+
+Metrics persist in Pushgateway until overwritten by next job.
+Even if next job fails, last known values remain visible.</pre>
+    <h2>Deployment Details</h2>
+    <pre>Namespace:    monitoring
+Internal URL: http://pushgateway.monitoring.svc.cluster.local:9091
+NodePort:     30910 (for testing from outside cluster)
+
+Verify from VM:
+  curl http://192.168.1.15:30910/metrics | grep ml_
+
+Push manually (test):
+  curl -X POST http://192.168.1.15:30910/metrics/job/test \
+    --data-binary 'ml_drift_detected 1'</pre>
+    <div class="box bx-y"><div class="bt">⚠ Common Mistake</div>Don't use Pushgateway for long-running services. Only for batch/cron jobs. Values persist after job exits — stale metrics are misleading if service crashes.</div>
+  </div>
+
+  <div class="subp" id="comp-gha">
+    <h1><span class="tag">Components · Deep Dive</span>GitHub Actions — CI/CD</h1>
+    <h2>Core Concepts</h2>
+    <table><tr><th>Concept</th><th>What It Is</th></tr>
+    <tr><td>Workflow</td><td>YAML file in .github/workflows/ — defines when + what to run</td></tr>
+    <tr><td>Job</td><td>Unit of work running on one runner. Steps run sequentially inside a job.</td></tr>
+    <tr><td>Step</td><td>Individual action (uses: action) OR shell command (run: cmd)</td></tr>
+    <tr><td>Runner</td><td>Machine executing the job. Hosted (GitHub cloud) or self-hosted (your machine)</td></tr>
+    <tr><td>Trigger</td><td>push, pull_request, workflow_dispatch, schedule</td></tr></table>
+    <h2>Why Self-Hosted Runner is Essential</h2>
+    <pre>GitHub-hosted runner:
+  → Runs on GitHub's cloud servers
+  → Cannot reach 192.168.1.x (your private LAN)
+  → No GPU access
+
+Your Windows machine (self-hosted runner):
+  → Can reach http://192.168.1.15:30500 (MLflow) ✓
+  → Can reach http://192.168.1.15:30900 (MinIO) ✓
+  → Has GTX 1650 for training ✓
+  → Runs as Windows Service → always available</pre>
+    <h2>Complete Workflow</h2>
+    <pre>name: ML Training Pipeline
+on:
+  workflow_dispatch:
+  push:
+    paths: ['train.py', 'requirements.txt']
+
+jobs:
+  train-deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install -r requirements.txt
+      
+      - name: Train
+        env:
+          MLFLOW_TRACKING_URI: http://192.168.1.15:30500
+          AWS_ACCESS_KEY_ID: ${{ secrets.MINIO_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.MINIO_SECRET }}
+        run: python train.py
+      
+      - name: Quality Gate
+        run: python quality_gate.py  # exits 1 if R2<0.8
+      
+      - name: Scan Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: rishikoy/mlops:predictor-v1
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+      
+      - name: Deploy
+        if: success()
+        run: kubectl apply -f k3s/inference-service.yaml</pre>
+    <h2>ML CI/CD vs Software CI/CD</h2>
+    <table><tr><th>Aspect</th><th>Software</th><th>ML</th></tr>
+    <tr><td>What's tested</td><td>Code correctness</td><td>Code + data + model quality</td></tr>
+    <tr><td>Artifact</td><td>Binary/container</td><td>Model pkl + serving container</td></tr>
+    <tr><td>Quality gate</td><td>Tests pass/fail</td><td>Metrics above threshold (R2, RMSE)</td></tr>
+    <tr><td>Rollback</td><td>Previous code version</td><td>Previous model version from registry</td></tr></table>
+  </div>
+
+  <div class="subp" id="comp-kubeflow">
+    <h1><span class="tag">Components · Deep Dive</span>Kubeflow — When to Use</h1>
+    <h2>What Kubeflow Is (It's a Collection)</h2>
+    <pre>Kubeflow is NOT one tool:
+  Kubeflow Pipelines:  ML workflow orchestration (DAGs)  ← most relevant
+  Katib:               Hyperparameter tuning at scale
+  Notebooks:           Managed Jupyter on K8s
+  Training Operator:   Distributed training (TFJob, PyTorchJob)
+  KServe:              Model serving ← YOU ALREADY USE THIS
+
+You already use the most production-critical Kubeflow component!</pre>
+    <h2>Kubeflow Pipelines — DAG Definition</h2>
+    <pre>@component
+def load_data() -> Dataset: ...
+
+@component
+def train(dataset: Dataset) -> Model: ...
+
+@component
+def evaluate(model: Model) -> Metrics: ...
+
+@component
+def deploy(model: Model, metrics: Metrics):
+    if metrics.r2 > 0.80:
+        deploy_to_kserve(model)
+
+@pipeline
+def ml_pipeline():
+    data    = load_data()
+    model   = train(data)
+    metrics = evaluate(model)
+    deploy(model, metrics)</pre>
+    <h2>When to Use Kubeflow Pipelines vs GitHub Actions</h2>
+    <table><tr><th>Factor</th><th>Use GitHub Actions</th><th>Use Kubeflow</th></tr>
+    <tr><td>Team size</td><td>1–5 engineers</td><td>10+ engineers</td></tr>
+    <tr><td>Model count</td><td>1–10 models</td><td>20+ models</td></tr>
+    <tr><td>Retraining</td><td>Occasional/manual</td><td>Daily or hourly</td></tr>
+    <tr><td>Pipeline complexity</td><td>Linear (train→deploy)</td><td>Complex DAGs, parallel steps</td></tr>
+    <tr><td>Your stack</td><td>✓ Right choice now</td><td>Future, when you scale</td></tr></table>
+  </div>
+
+  <div class="subp" id="comp-airflow">
+    <h1><span class="tag">Components · Deep Dive</span>Airflow — Data Pipeline Orchestration</h1>
+    <h2>Airflow vs GitHub Actions — Different Problems</h2>
+    <pre>GitHub Actions: code-triggered CI/CD
+  "When train.py changes → run training pipeline"
+
+Airflow: schedule-triggered data pipelines
+  "Every midnight → process new data → feature engineer → store"
+
+They are COMPLEMENTARY, not competing.</pre>
+    <h2>When You Need Airflow</h2>
+    <pre>Current stack (no Airflow needed):
+  Static California Housing dataset
+  No daily ingestion
+  GitHub Actions handles training trigger
+
+Production with live data (Airflow needed):
+  House prices updated daily from MLS feed
+  Need: validate → clean → feature engineer → store → trigger retrain
+
+Airflow DAG:
+  @dag(schedule="0 0 * * *")  # midnight daily
+  def house_price_pipeline():
+      raw      = fetch_new_listings()
+      validated = validate_schema(raw)
+      features  = engineer_features(validated)
+      stored    = push_to_minio(features)
+      retrigger = trigger_retrain_if_enough_new_data(stored)</pre>
+    <h2>Key Concepts</h2>
+    <table><tr><th>Concept</th><th>What</th><th>Analogy</th></tr>
+    <tr><td>DAG</td><td>Directed Acyclic Graph of tasks</td><td>The pipeline definition</td></tr>
+    <tr><td>Task</td><td>One unit of work</td><td>One step in pipeline</td></tr>
+    <tr><td>Operator</td><td>Template: S3Operator, BashOperator</td><td>Building block</td></tr>
+    <tr><td>Sensor</td><td>Waits for condition</td><td>"Wait until file exists in S3"</td></tr>
+    <tr><td>Scheduler</td><td>Triggers DAGs on schedule</td><td>Cron with Web UI</td></tr></table>
+  </div>
+
+</div><!-- /page-comp -->
+
+<!-- ████████████████████████████████ PAGE: DICTIONARY ████████████████████████████████ -->
+<div class="page" id="page-dict">
+  <div class="subp on" id="dict-all">
+    <h1><span class="tag">Terminology</span>Complete MLOps Dictionary</h1>
+    <p class="lead">Every term you'll hear in interviews, documentation, and production discussions.</p>
+    <input class="dsearch" id="dsearch" type="text" placeholder="Search… (try 'drift', 'RMSE', 'canary', 'PSI')" oninput="filterDict()">
+    <div id="dict-body">
+
+      <div class="de" data-k="artifact store mlflow">
+        <div><span class="dt">Artifact Store</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Storage backend for MLflow artifacts — model files, plots, data. Separate from metadata (PostgreSQL). In your stack: MinIO mlflow-artifacts bucket.</div>
+        <div class="dex">mlflow.log_model() uploads model.pkl to s3://mlflow-artifacts/1/run_id/artifacts/model/</div>
+      </div>
+
+      <div class="de" data-k="background task fastapi async">
+        <div><span class="dt">Background Task</span><span class="dcat co">OPS</span></div>
+        <div class="dd">FastAPI mechanism to run code after response is sent. The user gets their prediction before MinIO write completes. Enables async logging without latency impact.</div>
+        <div class="dex">background_tasks.add_task(log_prediction, features, pred) — executes after {"prediction": 4.336} is returned.</div>
+      </div>
+
+      <div class="de" data-k="canary deployment traffic split rollback">
+        <div><span class="dt">Canary Deployment</span><span class="dcat co">OPS</span></div>
+        <div class="dd">Pattern where new model version gets small % of traffic first. Validate before full rollout. KServe: canaryTrafficPercent: 10. Rollback: set to 0.</div>
+        <div class="dex">New model v2 gets 10% traffic for 30 minutes. Error rate stays low. Promote to 100%.</div>
+      </div>
+
+      <div class="de" data-k="concept drift p(y|x) relationship changes">
+        <div><span class="dt">Concept Drift</span><span class="dcat cm">ML</span></div>
+        <div class="dd">P(Y|X) changes — the relationship between features and outcome shifts. Most dangerous drift: features look normal but model performance degrades. Requires ground truth to detect.</div>
+        <div class="dex">Pre-COVID: high income + city → high price. Post-COVID: high income + city → lower price (remote work shifted demand). Same features, wrong predictions.</div>
+      </div>
+
+      <div class="de" data-k="confusion matrix tp tn fp fn">
+        <div><span class="dt">Confusion Matrix</span><span class="dcat cm">ML</span></div>
+        <div class="dd">2×2 table: TP (correct YES), TN (correct NO), FP (false alarm), FN (miss). Foundation for precision, recall, F1. Row = actual, column = predicted.</div>
+        <div class="dex">Cancer screening: FN (missed cancer) costs more than FP (unnecessary biopsy) → optimize for Recall.</div>
+      </div>
+
+      <div class="de" data-k="covariate shift data drift p(x)">
+        <div><span class="dt">Covariate Shift</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Synonym for Data Drift. P(X) changes — input feature distributions shift while the relationship P(Y|X) stays the same. Detectable with PSI/KS tests.</div>
+        <div class="dex">Training on 1990s houses, serving requests for new 2024 construction — HouseAge distribution shifts completely.</div>
+      </div>
+
+      <div class="de" data-k="cronjob kubernetes batch job schedule">
+        <div><span class="dt">CronJob (Kubernetes)</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">K8s resource that creates Jobs on a cron schedule. Pod runs, completes task, exits. Used for Evidently drift detection (hourly), lifecycle cleanup, batch scoring.</div>
+        <div class="dex">schedule: "0 * * * *" creates a new pod every hour, runs drift_check.py, then pod is deleted automatically.</div>
+      </div>
+
+      <div class="de" data-k="data drift input distribution feature distribution psi">
+        <div><span class="dt">Data Drift</span><span class="dcat cm">ML</span></div>
+        <div class="dd">P(X) changes — input feature distributions in production differ from training distributions. P(Y|X) unchanged. Most common drift type. Detected by PSI and KS tests.</div>
+        <div class="dex">MedInc training avg=3.8, production avg=7.2. PSI=0.45 (major drift). Evidently flags as drifted.</div>
+      </div>
+
+      <div class="de" data-k="dvc data version control git data">
+        <div><span class="dt">DVC (Data Version Control)</span><span class="dcat cd">DATA</span></div>
+        <div class="dd">Git for data. Stores large files (parquet, CSV) in S3/MinIO, keeps tiny pointer files (.dvc) in Git. Links code version to exact data version for reproducibility.</div>
+        <div class="dex">dvc add train.parquet creates train.parquet.dvc (100 bytes in Git). dvc push uploads 150MB parquet to MinIO.</div>
+      </div>
+
+      <div class="de" data-k="evidently drift detection monitoring reports">
+        <div><span class="dt">Evidently</span><span class="dcat co">OPS</span></div>
+        <div class="dd">Open source ML observability library + UI server. Compares reference data (training) against current data (production). Runs PSI/KS tests, generates HTML reports and Prometheus metrics.</div>
+        <div class="dex">Evidently CronJob reads train.parquet + today's prediction parquets, runs DataDriftPreset, pushes ml_drift_detected=1 to Pushgateway.</div>
+      </div>
+
+      <div class="de" data-k="f1 score harmonic mean precision recall">
+        <div><span class="dt">F1 Score</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Harmonic mean of Precision and Recall. Punishes imbalance between the two. Preferred over accuracy for imbalanced datasets. Range 0.0 to 1.0.</div>
+        <div class="dex">P=0.9, R=0.7 → F1 = 2×(0.9×0.7)/(0.9+0.7) = 0.788. Better than using either alone.</div>
+      </div>
+
+      <div class="de" data-k="feature drift individual column psi per feature">
+        <div><span class="dt">Feature Drift</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Drift in specific individual features while others remain stable. Evidently reports PSI per column, enabling pinpoint identification of which features changed and why.</div>
+        <div class="dex">Population PSI=0.45 (major), all others stable → likely data pipeline bug computing Population, not real-world change.</div>
+      </div>
+
+      <div class="de" data-k="feature store feast training serving skew consistency">
+        <div><span class="dt">Feature Store</span><span class="dcat cd">DATA</span></div>
+        <div class="dd">Centralized system for computing, storing, and serving features. Eliminates training-serving skew by using same computation code for both. Has offline store (batch training) and online store (low-latency serving).</div>
+        <div class="dex">Feast: AveOccup computed once, stored in both offline (training) and online (Redis for serving) stores. No skew possible.</div>
+      </div>
+
+      <div class="de" data-k="grafana visualization alerting dashboard prometheus">
+        <div><span class="dt">Grafana</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Visualization and alerting layer on top of Prometheus. Queries PromQL, renders dashboards, sends alerts via Slack/email/PagerDuty. Does not store data itself.</div>
+        <div class="dex">Grafana drift dashboard: ml_drift_detected stat panel (Red/Green), ml_drift_share gauge, request rate time series — all from Prometheus queries.</div>
+      </div>
+
+      <div class="de" data-k="ground truth delay labels actuals real outcome">
+        <div><span class="dt">Ground Truth Delay</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Time between making a prediction and knowing the correct answer. Makes real-time performance monitoring impossible without proxy metrics or drift detection.</div>
+        <div class="dex">House price model predicts $450k today. Actual sale happens 45 days later. Can't calculate RMSE until then. Solution: drift monitoring (immediate) + delayed evaluation pipeline.</div>
+      </div>
+
+      <div class="de" data-k="inference service kserve crd yaml">
+        <div><span class="dt">InferenceService</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">KServe Custom Resource Definition. Declares a model serving deployment. Creates pods, services, Knative routes, HPA automatically from a single YAML spec.</div>
+        <div class="dex">kubectl apply -f inference-service.yaml → creates predictor pod, Knative Service, Kourier Route all automatically.</div>
+      </div>
+
+      <div class="de" data-k="irsa iam roles service accounts aws s3 no credentials">
+        <div><span class="dt">IRSA (IAM Roles for Service Accounts)</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">AWS mechanism linking K8s ServiceAccounts to IAM roles. Pods assume roles via token projection — no access keys anywhere. Credentials rotate automatically.</div>
+        <div class="dex">predictor-sa → IAM role AllowPredictionsWrite. Pod writes to S3 without any credentials in YAML. Zero secrets to rotate or leak.</div>
+      </div>
+
+      <div class="de" data-k="knative serverless scale zero traffic splitting revision">
+        <div><span class="dt">Knative</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Kubernetes serverless framework. Each deployment creates immutable Revisions. Traffic splits across Revisions for canary. Scale-to-zero when idle.</div>
+        <div class="dex">KServe uses Knative Revisions as the canary mechanism. canaryTrafficPercent: 10 routes 10% to Revision-v2, 90% to Revision-v1.</div>
+      </div>
+
+      <div class="de" data-k="kourier knative ingress gateway envoy traffic routing">
+        <div><span class="dt">Kourier</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Lightweight Envoy-based ingress for Knative. Routes traffic to correct Knative Service by Host header. Lighter alternative to Istio. MetalLB gives it a real IP.</div>
+        <div class="dex">Kourier at 192.168.1.240. Routes mlflow-model-predictor.ml.ml.local to KServe predictor pod via Knative Route lookup.</div>
+      </div>
+
+      <div class="de" data-k="ks test kolmogorov smirnov statistical drift p-value cdf">
+        <div><span class="dt">KS Test (Kolmogorov-Smirnov)</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Non-parametric test measuring max difference between two CDFs. p &lt; 0.05 means distributions are significantly different. Default test for numerical features in Evidently.</div>
+        <div class="dex">Training MedInc vs production MedInc CDFs. D=0.45, p=0.001 → drift detected (p &lt; 0.05).</div>
+      </div>
+
+      <div class="de" data-k="kserve model serving kubernetes autoscaling canary">
+        <div><span class="dt">KServe</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">K8s-native ML model serving. Knative-based autoscaling, traffic splitting for canary, multi-framework support. Standard for ML serving on Kubernetes.</div>
+        <div class="dex">InferenceService YAML → KServe creates FastAPI predictor pod with autoscaling, health checks, Kourier routing, and /metrics endpoint.</div>
+      </div>
+
+      <div class="de" data-k="label drift prior probability class balance shift">
+        <div><span class="dt">Label Drift</span><span class="dcat cm">ML</span></div>
+        <div class="dd">P(Y) changes — target variable distribution shifts. For classification: class frequencies change. Model calibration breaks when base rate changes significantly.</div>
+        <div class="dex">Training: 1% fraud. Production: 8% fraud (attack wave). Model underestimates fraud. Fix: adjust threshold or retrain.</div>
+      </div>
+
+      <div class="de" data-k="lifecycle policy s3 minio expiry cost storage delete">
+        <div><span class="dt">Lifecycle Policy (S3/MinIO)</span><span class="dcat cd">DATA</span></div>
+        <div class="dd">Rules that automatically delete/transition objects after specified time. Essential for cost control — predictions bucket grows unbounded without it.</div>
+        <div class="dex">mc ilm add local/predictions --expiry-days 90 → all prediction parquets deleted automatically after 90 days.</div>
+      </div>
+
+      <div class="de" data-k="mae mean absolute error regression loss">
+        <div><span class="dt">MAE (Mean Absolute Error)</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Average of absolute differences between predictions and actuals. Same unit as target. Treats all errors equally. More interpretable than RMSE for business stakeholders.</div>
+        <div class="dex">Your model MAE ≈ 0.37 → median absolute error $37,000. Compared to mean house price ~$207k → ~18% typical error.</div>
+      </div>
+
+      <div class="de" data-k="minio s3 compatible object storage buckets boto3">
+        <div><span class="dt">MinIO</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Open-source S3-compatible object storage. Same API as AWS S3. Switch to cloud by changing endpoint_url only — zero code changes. Your on-premise data lake.</div>
+        <div class="dex">boto3.client("s3", endpoint_url="http://192.168.1.15:30900") — identical to AWS S3 except endpoint URL.</div>
+      </div>
+
+      <div class="de" data-k="mlflow experiment tracking registry artifact model lifecycle">
+        <div><span class="dt">MLflow</span><span class="dcat co">OPS</span></div>
+        <div class="dd">Open source ML lifecycle platform. 4 components: Tracking (log experiments), Artifact Store (store files), Model Registry (version management), Serving (you replaced with KServe).</div>
+        <div class="dex">mlflow.log_metric("r2", 0.81) → PostgreSQL. mlflow.log_model() → MinIO pkl. mlflow.register_model() → Registry v1.</div>
+      </div>
+
+      <div class="de" data-k="model registry stages production staging archived version">
+        <div><span class="dt">Model Registry</span><span class="dcat co">OPS</span></div>
+        <div class="dd">Centralized catalog of model versions with lifecycle stages: None → Staging → Production → Archived. Source of truth for what's deployed. KServe loads models by registry reference.</div>
+        <div class="dex">models:/best_random_forest_model/1 — KServe loads this reference → MLflow resolves → MinIO pkl download.</div>
+      </div>
+
+      <div class="de" data-k="network policy kubernetes pod isolation security">
+        <div><span class="dt">Network Policy (K8s)</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">K8s resource controlling pod-to-pod traffic. Default deny-all, explicitly allow needed connections. Limits blast radius if a pod is compromised.</div>
+        <div class="dex">Predictor pod policy: allow egress to MinIO:9000 and MLflow:5000 only. All other outbound blocked.</div>
+      </div>
+
+      <div class="de" data-k="object storage s3 flat namespace blob binary">
+        <div><span class="dt">Object Storage</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Flat key-value storage for large unstructured data (bucket/key → binary). No filesystem hierarchy. HTTP API. Petabyte-scale. 11 nines durability on AWS S3.</div>
+        <div class="dex">s3://mlflow-artifacts/1/run_id/artifacts/model/model.pkl — looks like a path, but "1/run_id/artifacts/model/model.pkl" is the key in a flat namespace.</div>
+      </div>
+
+      <div class="de" data-k="psi population stability index drift threshold 0.2">
+        <div><span class="dt">PSI (Population Stability Index)</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Measures distribution shift per feature. Bins data, compares % per bucket. PSI &lt; 0.1 stable, 0.1-0.2 slight, &gt;0.2 significant, &gt;0.25 major. Finance industry standard.</div>
+        <div class="dex">MedInc: 30% of training in [0-4] bucket vs 10% in production → PSI = 0.35 (significant drift).</div>
+      </div>
+
+      <div class="de" data-k="prediction drift output distribution model output std">
+        <div><span class="dt">Prediction Drift</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Model output distribution changes over time. Can occur without feature drift. Often caused by serving code bugs. Monitor prediction mean and std in Prometheus/Grafana.</div>
+        <div class="dex">All predictions = 4.336 (std ≈ 0). Your test sent identical requests 55 times. In production indicates serving bug.</div>
+      </div>
+
+      <div class="de" data-k="prometheus scrape pull metrics tsdb time series database">
+        <div><span class="dt">Prometheus</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Pull-based time series metrics database. Scrapes /metrics endpoints every 30s. Stores with labels. PromQL for queries. K8s monitoring standard. Foundation for Grafana dashboards.</div>
+        <div class="dex">Every 30s: Prometheus → GET kserve-pod:8080/metrics → stores http_requests_total, latency_seconds. Grafana queries via PromQL.</div>
+      </div>
+
+      <div class="de" data-k="pushgateway prometheus batch job cron short lived metrics">
+        <div><span class="dt">Prometheus Pushgateway</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Intermediary for short-lived jobs (CronJobs) to push metrics to Prometheus. Jobs push before exiting. Prometheus scrapes Pushgateway normally. Persists last-pushed value.</div>
+        <div class="dex">Evidently CronJob runs 20s, pushes ml_drift_detected=1 to Pushgateway, exits. Prometheus scrapes Pushgateway at :30s and :60s. Grafana shows alert.</div>
+      </div>
+
+      <div class="de" data-k="r2 r-squared coefficient of determination regression variance">
+        <div><span class="dt">R² (R-Squared)</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Proportion of target variance explained by the model. Range −∞ to 1.0. R²=0.81 means model explains 81% of variance. R²=0 = predicting the mean. R²&lt;0 = worse than mean.</div>
+        <div class="dex">Your model R²=0.81. Baseline (always predict mean) R²=0. Your model is 81% better than the naive baseline.</div>
+      </div>
+
+      <div class="de" data-k="rawdeployment kserve annotation serverless alternative local">
+        <div><span class="dt">RawDeployment (KServe)</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">KServe mode using standard K8s Deployment instead of Knative. Works with local/private registry images. No scale-to-zero, no built-in canary. Good for development phase.</div>
+        <div class="dex">annotation: serving.kserve.io/deploymentMode: RawDeployment — used when Knative can't resolve local containerd image.</div>
+      </div>
+
+      <div class="de" data-k="recall sensitivity true positive rate hit rate">
+        <div><span class="dt">Recall (Sensitivity)</span><span class="dcat cm">ML</span></div>
+        <div class="dd">Of all actual positives, how many did the model catch? TP/(TP+FN). Maximize when false negatives are costly (fraud, disease, safety).</div>
+        <div class="dex">Cancer screening Recall=0.99 → catches 99% of actual cancer cases. Missing 1% (FN) could be fatal.</div>
+      </div>
+
+      <div class="de" data-k="rmse root mean square error regression penalty large errors">
+        <div><span class="dt">RMSE (Root Mean Square Error)</span><span class="dcat cm">ML</span></div>
+        <div class="dd">√(mean squared errors). Same unit as target. Penalizes large errors heavily (squaring). Your model: RMSE ≈ 0.52 (target in $100k units = ~$52k average error).</div>
+        <div class="dex">RMSE 0.52 vs MAE 0.37 → RMSE &gt; MAE suggests some predictions have large errors. Most are close, a few are very wrong.</div>
+      </div>
+
+      <div class="de" data-k="service monitor servicemonitor prometheus crd scrape">
+        <div><span class="dt">ServiceMonitor</span><span class="dcat ci">INFRA</span></div>
+        <div class="dd">Prometheus Operator CRD telling Prometheus which K8s services to scrape. Declarative — add a YAML file, Prometheus auto-discovers. No prometheus.yaml editing needed.</div>
+        <div class="dex">ServiceMonitor selector matchLabels: app=mlflow-model → Prometheus scrapes all matching pods every 30s automatically.</div>
+      </div>
+
+      <div class="de" data-k="shadow mode parallel inference validation new model">
+        <div><span class="dt">Shadow Mode</span><span class="dcat co">OPS</span></div>
+        <div class="dd">New model runs in parallel but its output is NOT served to users. Log both models' outputs. Validate new model behavior before canary.</div>
+        <div class="dex">Old model → user response. New model → log only. After 1 week: compare logs to validate new model before exposing to users.</div>
+      </div>
+
+      <div class="de" data-k="training serving skew feature mismatch silent degradation">
+        <div><span class="dt">Training-Serving Skew</span><span class="dcat cm">ML</span></div>
+        <div class="dd">#1 silent model killer. Feature computation differs between training and serving code. Same raw input → different feature values → model sees wrong data. No errors, just wrong predictions.</div>
+        <div class="dex">AveOccup = Pop/Households (training) vs Pop/Bedrooms (serving). Both "reasonable" but model gets wrong value. Silent degradation for months.</div>
+      </div>
+
+      <div class="de" data-k="trivy vulnerability scanner container image cve security cicd">
+        <div><span class="dt">Trivy</span><span class="dcat co">OPS</span></div>
+        <div class="dd">Open source vulnerability scanner for container images and dependencies. Used in CI/CD to block deployment of images with known CVEs. aquasecurity/trivy-action GitHub Action.</div>
+        <div class="dex">trivy image rishikoy/mlops:predictor-v1 → CRITICAL:2, HIGH:5 → exit-code:1 → CI/CD blocks deployment until fixed.</div>
+      </div>
+
+    </div><!-- /dict-body -->
+  </div>
+</div><!-- /page-dict -->
+
+</div><!-- /content -->
+</div><!-- /layout -->
+
+<script>
+// ─── PAGE SWITCHING ───
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tnav').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.sb-section').forEach(s => s.classList.remove('on'));
+  document.getElementById('page-' + id).classList.add('on');
+  btn.classList.add('on');
+  document.getElementById('sb-' + id).classList.add('on');
+}
+
+// ─── SUBPAGE SWITCHING ───
+function showSub(page, sub, el) {
+  const pg = document.getElementById('page-' + page);
+  if (!pg) return;
+  pg.querySelectorAll('.subp').forEach(s => s.classList.remove('on'));
+  const target = document.getElementById(page + '-' + sub) ||
+                 document.getElementById('comp-' + sub)    ||
+                 document.getElementById('dict-' + sub)    ||
+                 document.getElementById('metrics-' + sub) ||
+                 document.getElementById('drift-' + sub)   ||
+                 document.getElementById('arch-' + sub);
+  if (target) target.classList.add('on');
+  document.querySelectorAll('#sb-' + page + ' .si').forEach(i => i.classList.remove('on'));
+  if (el) el.classList.add('on');
+  document.querySelector('.content').scrollTop = 0;
+}
+
+// ─── ARCH BLOCK → DETAIL PANEL ───
+function activateBlock(el, panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const isOn = panel.classList.contains('on');
+  document.querySelectorAll('.dp').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.ab').forEach(b => b.classList.remove('on'));
+  if (!isOn) {
+    panel.classList.add('on');
+    el.classList.add('on');
+    setTimeout(() => panel.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+  }
+}
+
+// ─── DETAIL PANEL TABS ───
+function showDTab(panelId, tab, btn) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.querySelectorAll('.dtc').forEach(c => c.classList.remove('on'));
+  panel.querySelectorAll('.dtab').forEach(b => b.classList.remove('on'));
+  const target = document.getElementById(panelId + '-' + tab);
+  if (target) target.classList.add('on');
+  if (btn) btn.classList.add('on');
+}
+
+// ─── METRIC CARDS ───
+function toggleMC(card, detailId) {
+  const det = document.getElementById(detailId);
+  if (!det) return;
+  const wasOn = det.classList.contains('on');
+  document.querySelectorAll('.mc-detail').forEach(d => d.classList.remove('on'));
+  document.querySelectorAll('.mc').forEach(c => c.classList.remove('on'));
+  if (!wasOn) { det.classList.add('on'); card.classList.add('on'); }
+}
+
+// ─── DRIFT CARDS ───
+function toggleDC(card, detailId) {
+  const det = document.getElementById(detailId);
+  if (!det) return;
+  const wasOn = det.classList.contains('on');
+  document.querySelectorAll('.dc-body').forEach(d => d.classList.remove('on'));
+  document.querySelectorAll('.dc').forEach(c => c.classList.remove('on'));
+  if (!wasOn) { det.classList.add('on'); card.classList.add('on'); }
+}
+
+// ─── DICTIONARY SEARCH ───
+function filterDict() {
+  const q = document.getElementById('dsearch').value.toLowerCase();
+  document.querySelectorAll('.de').forEach(e => {
+    const k = (e.getAttribute('data-k') || '') + e.textContent.toLowerCase();
+    e.style.display = k.includes(q) ? 'block' : 'none';
+  });
+}
+</script>
+</body>
+</html>
